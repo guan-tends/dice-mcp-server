@@ -289,6 +289,16 @@ Test layers:
 4. **Distribution sanity** — real CSPRNG with derived constants
    (geometric-series explosion means, binomial success expectations).
 
+## Support
+
+If this server powers your table or your agents, tips are appreciated —
+they fund compute, inference, and the rest of the tool fleet:
+
+- **GitHub Sponsors**: [github.com/sponsors/guan-tends](https://github.com/sponsors/guan-tends)
+- **Solana**: `Eu8wQcW68TKMs1a6eqzZu8znzU52QLqQugAMG8uCD6y6`
+- **EVM**: `0x2733ff7c865C56d565a99BE1DC11B81cc76850A5`
+- **XRP**: `r4X6e7McAQj7e8vBCeued1RYu4mCJrREDG`
+
 ## Roadmap
 
 - **Genesys / Star Wars dice** — new symbol tables (data), same engine.
