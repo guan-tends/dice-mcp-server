@@ -28,12 +28,14 @@ describe('E2E: Dice MCP Server', () => {
       9, 8, 7, 6, 5,
       // l5r5 ring 2 skill 2: 2,5,9,10
       2, 5, 9, 10,
-      // l5r5 advantage (ring 2, skill 1): ring 2, ring 6 (expl),
-      // skill 8, bonus-ring 5, conversion reroll -> skill 9
-      2, 6, 8, 5, 9,
+      // l5r5 advantage (ring 2, skill 1): base ring 2, ring 6 (expl),
+      // skill 8; conversion reroll -> skill 5; bonus ring (kept ring-6
+      // explodes post-keep) -> 4. Bonus rolls happen AFTER keep now.
+      2, 6, 8, 5, 4,
       // l5r5 conversions "3:ring" (ring 2, skill 2): ring 3, ring 4,
-      // skill 7, skill 8, conversion reroll -> ring 6
-      3, 4, 7, 8, 6,
+      // skill 7, skill 8, conversion reroll -> ring 4 (no explosion —
+      // keeps the shared queue aligned for the tests below)
+      3, 4, 7, 8, 4,
       // ── v1.2.0 additions (consumed in file order by the appended tests) ──
       // explodeOn '9' (rolled 1 kept 1): 9 explodes -> 7
       9, 7,
@@ -153,9 +155,11 @@ describe('E2E: Dice MCP Server', () => {
     expect(result.isError).toBeFalsy()
     const parsed = JSON.parse(result.content[0].text)
     expect(parsed.conversions).toHaveLength(1)
-    expect(parsed.conversions[0]).toMatchObject({ index: 1, from: 'ring', to: 'skill', newFace: 9 })
-    // Explosive ring 6 was NOT converted — its bonus die exists.
-    expect(parsed.pool.some((d) => d.bonusFor !== undefined)).toBe(true)
+    expect(parsed.conversions[0]).toMatchObject({ index: 1, from: 'ring', to: 'skill', newFace: 5 })
+    // Explosive ring 6 was NOT converted — kept, it explodes post-keep
+    // (book Step 6.1): bonus die lives in the audit array, tallied.
+    expect(parsed.bonusDice).toHaveLength(1)
+    expect(parsed.bonusDice[0]).toMatchObject({ type: 'ring', face: 4, disposition: 'kept' })
   })
 
   it('calls l5r5_roll with explicit conversions end to end', async () => {
@@ -172,7 +176,7 @@ describe('E2E: Dice MCP Server', () => {
       from: 'skill',
       to: 'ring',
       oldFace: 7,
-      newFace: 6,
+      newFace: 4,
     })
   })
 
