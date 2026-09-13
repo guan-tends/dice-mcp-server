@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] — 2026-09-13
+
+### Polish lap — GM optional items
+
+- **Truth-in-notes**: the explosion note now names the ACTUAL armed
+  threshold(s) — `exploded on face(s) 9` for weapon mastery, `9, 10`
+  for lists — instead of hardcoding "10s" (RT28: the note lied, the
+  chains didn't).
+- **Void Ring transparency**: when `voidRing` is passed with no declared
+  raises, a note now says so and points to `voidPoint: true` for +1k1 —
+  surfacing the mimic-trap instead of leaving a silent no-op.
+  `voidRing` remains pure raise-cap by design: the Void Ring RATING
+  caps raises (Report B §7); the POINT is the one-time spend. "Finishing"
+  it as +1k1 would recreate the mimic trap the convention retired.
+
 ## [1.3.0] — 2026-09-13
 
 ### GM feedback lap — two iteration points from the retest report (PASS, 26 probes)
