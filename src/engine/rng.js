@@ -56,6 +56,12 @@ export function createSequenceRng(values, sides = null) {
       )
     }
     const value = values[position++]
+    if (value > rollSides) {
+      throw new Error(
+        `createSequenceRng: queued value ${value} at position ${position - 1} exceeds ` +
+          `die size ${rollSides} for this call (fixture bug — check explosion/consumption order)`
+      )
+    }
     return value
   }
 }
