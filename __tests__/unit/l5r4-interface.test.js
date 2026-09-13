@@ -163,3 +163,44 @@ describe('§11 — totalBonus flat', () => {
     expect(r.totals.totalBonus).toBe(6)
   })
 })
+
+describe('validation paths (deep-review test gap)', () => {
+  it('direct pool bounds: rolled 0 rejected', () => {
+    expect(() => rollAndKeep({ rolled: 0, rng: () => 5 })).toThrow(/rolled/)
+  })
+
+  it('direct pool bounds: rolled 51 rejected', () => {
+    expect(() => rollAndKeep({ rolled: 51, rng: () => 5 })).toThrow(/rolled/)
+  })
+
+  it('direct pool bounds: kept 0 rejected', () => {
+    expect(() => rollAndKeep({ rolled: 3, kept: 0, rng: () => 5 })).toThrow(/kept/)
+  })
+
+  it('invalid rollType rejected', () => {
+    expect(() => rollAndKeep({ trait: 3, skill: 3, rollType: 'wuxia', rng: () => 5 })).toThrow(
+      /rollType/,
+    )
+  })
+
+  it('invalid keepMode rejected', () => {
+    expect(() => rollAndKeep({ trait: 3, skill: 3, keepMode: 'middle', rng: () => 5 })).toThrow(
+      /keepMode/,
+    )
+  })
+
+  it('explodeOn invalid faces rejected by core (0 and 11 out of range)', () => {
+    expect(() => rollAndKeep({ trait: 3, skill: 3, explodeOn: [0, 10], rng: () => 5 })).toThrow(
+      /explodeOn/,
+    )
+    expect(() => rollAndKeep({ trait: 3, skill: 3, explodeOn: [11], rng: () => 5 })).toThrow(
+      /explodeOn/,
+    )
+  })
+
+  it('unskilled emphasis produces no emphasis note (suppressed structurally)', () => {
+    const rng = createSequenceRng([1, 3])
+    const r = rollAndKeep({ trait: 2, skill: 0, emphasis: true, rng })
+    expect(r.notes.some((n) => /Emphasis/.test(n))).toBe(false)
+  })
+})

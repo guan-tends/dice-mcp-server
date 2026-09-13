@@ -135,14 +135,19 @@ export function getTools({ rng = createCryptoRng() } = {}) {
           .int()
           .min(1)
           .max(10)
-          .describe('Trait ring rating 1-10 (also the keep count)'),
+          .optional()
+          .describe(
+            'Trait ring rating 1-10 (also the keep count). Omit when passing a direct rolled/kept pool',
+          ),
         skill: z
           .number()
           .int()
           .min(0)
           .max(10)
-          .default(0)
-          .describe('Skill rating 0-10. 0 = untrained roll'),
+          .optional()
+          .describe(
+            'Skill rating 0-10. Omit when passing a direct rolled/kept pool. 0 (with no rollType/untrained) = unskilled roll',
+          ),
         tn: z.number().int().optional().describe('Target number (5 trivial .. 40 near-impossible)'),
         raises: z
           .number()
