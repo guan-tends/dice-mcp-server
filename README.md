@@ -137,22 +137,42 @@ concatenation (`2d61d4`) are rejected with named errors.
 ### `l5r4_roll` — Roll & Keep (4e)
 
 Pools `(Trait + Skill)` d10s, keeps the highest `Trait`. D10s explode on
-10s (trained rolls only).
+10s (trained rolls only). Every pool passes through the **Ten Dice Rule**:
+no more than 10 rolled / 10 kept dice — excess kept dice add +2 each,
+excess rolled dice convert 2:1 into kept dice (while kept < 10), and any
+leftover rolled dice add +2 each. `preCapPool` and `overflowBonus` are
+reported for audit.
 
-| Param                     | Range | Default  | Notes                                                                                            |
-| ------------------------- | ----- | -------- | ------------------------------------------------------------------------------------------------ |
-| `trait`                   | 1–10  | required | also the keep count                                                                              |
-| `skill`                   | 0–10  | 0        | 0 = untrained                                                                                    |
-| `tn`                      | —     | —        | 5 trivial · 10 easy · 15 average · 20 difficult · 25 very hard · 30 extreme · 40 near-impossible |
-| `raises`                  | 0–10  | 0        | +5 TN each; capped by `voidRing`                                                                 |
-| `freeRaises`              | 0–10  | 0        | effect only, no TN, never counts vs cap                                                          |
-| `voidRing`                | 1–10  | —        | caps declared raises                                                                             |
-| `emphasis`                | bool  | false    | reroll initial 1s once, BEFORE explosions                                                        |
-| `penalty`                 | int   | 0        | wound/stance penalty, applied once to the total                                                  |
-| `rollBonus` / `keepBonus` | 0–10  | 0        | Void Point = +1k1                                                                                |
+Build a pool two ways:
 
-Untrained (skill 0): trait dice only, ALL kept, no explosions, no raises
-(raises on untrained rolls are rejected with an explanatory error).
+- **Trait + Skill** (skill rolls): `(Trait + Skill) k Trait`
+- **Direct `rolled`/`kept`** (everything else): initiative `1k4`
+  (Insight k Reflexes — kept > rolled is legal), melee damage `6k2`,
+  Honor rolls `6k6`, spell casting `3k2`, unarmed `3k1`
+
+| Param                     | Range          | Default | Notes                                                                                            |
+| ------------------------- | -------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `trait`                   | 1–10           | —       | also the keep count; omit for direct pools                                                       |
+| `skill`                   | 0–10           | —       | 0 (with no `rollType`/`untrained`) = unskilled                                                   |
+| `rolled` / `kept`         | 1–50           | —       | direct pool input; overrides `trait`/`skill`                                                     |
+| `rollType`                | enum           | skill   | `skill` · `trait` · `ring` (explode + raises legal) · `unskilled` (neither) · `custom`           |
+| `untrained`               | bool           | —       | explicit flag; `false` with skill 0 = Trait roll                                                 |
+| `tn`                      | —              | —       | 5 trivial · 10 easy · 15 average · 20 difficult · 25 very hard · 30 extreme · 40 near-impossible |
+| `raises`                  | 0–10           | 0       | +5 effective TN each; capped by `voidRing`                                                       |
+| `freeRaises`              | 0–10           | 0       | effect only, no TN, never counts vs cap                                                          |
+| `voidRing`                | 1–10           | —       | caps declared raises                                                                             |
+| `voidPoint`               | bool           | false   | spend a Void Point: +1k1 to the pool                                                             |
+| `emphasis`                | bool           | false   | reroll initial 1s once, BEFORE explosions; trained rolls only                                    |
+| `penalty`                 | int            | 0       | wound/stance penalty — **raises the effective TN**, never the total (Nicked +3 … Down +40)       |
+| `rollBonus` / `keepBonus` | −10–10         | 0       | dice bonuses/penalties; penalties clamp kept ≤ rolled                                            |
+| `totalBonus`              | int            | 0       | flat bonus to the kept sum (Honor Rank on Fear rolls)                                            |
+| `keepMode`                | highest/lowest | highest | `lowest` = deliberate failure                                                                    |
+| `explodeOn`               | string         | "10"    | `9` (weapon mastery) · `"9,10"` · `none` (thrown weapons)                                        |
+
+Unskilled rolls (no skill ranks): trait dice only, ALL kept, no
+explosions, no raises, no emphasis (raises/emphasis on unskilled rolls
+are rejected or ignored with an explanatory note). Trait rolls are a
+separate thing — `rollType: "trait"` explodes and allows raises.
 
 ### `l5r5_roll` — Ring & Skill dice (5e)
 
