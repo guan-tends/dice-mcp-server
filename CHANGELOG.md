@@ -5,7 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] — 2026-09-13
+
+### L5R 4e engine — full table-law conformance (community field report, D1–D8)
+
+The 4e engine was torture-tested against the published rules by an independent
+RPG agent; this release closes every defect found and adopts the verbatim
+table-law spec (Report B).
+
+**Fixed**
+- **D1 — Ten Dice Rule** (§4): the signature normalization is now implemented
+  verbatim — kept-cap first (+2 per excess kept die), rolled-cap, 2:1
+  rolled→kept conversion *while kept < 10*, leftover +2 flat. Canonical
+  vectors: 12k4→10k5 · 13k9→10k10+2 · 10k12→10k10+4 · 14k12→10k10+12 ·
+  11k2 damage→10k2+2. Output adds `preCapPool` + `overflowBonus` for audit.
+- **D2 — kept > rolled legal** (§5): initiative = Insight k Reflexes (1k4),
+  damage 6k2, Honor 6k6 — all expressible via the new direct pool input
+  (`rolled`/`kept`).
+- **D3 — rollType** (§9): `skill | trait | ring | unskilled | custom`.
+  Trait/ring rolls explode and allow raises; unskilled does neither.
+  Back-compat: `skill: 0` with no flags still means unskilled.
+- **D4 — wound penalty semantics** (§10): the penalty RAISES the effective
+  TN and never touches the total (was previously added to the total).
+  Wound-rank ladder documented in the tool description.
+- **D5 — dice penalties** (§10): negative `rollBonus`/`keepBonus` accepted;
+  after subtraction kept clamps to rolled (6k4 under −3k0 → 3k3).
+- **D6 — Void Point**: new `voidPoint: true` = +1k1. (`voidRing` remains
+  the raise-cap rating, matching the established +1k1 bonus convention.)
+- **D7 — emphasis**: never applies to unskilled rolls (§8 — skill mechanic).
+- **D8 — keepMode**: `lowest` keeps the smallest dice (§1 — deliberate
+  failure is legal).
+
+**Added**
+- `totalBonus` — flat bonus to the kept sum (Honor Rank on Fear resistance,
+  §11), distinct from dice bonuses.
+- `explodeOn` — explosion faces: `10` (default), `9` (weapon mastery),
+  `9,10`, or `none` (thrown weapons), §3.
+- Richer output: `preCapPool`, `overflowBonus`, `rollType`, `keepMode`,
+  `totals.totalBonus`.
+
+**Tests**: 198 (from 168) — 11 Ten-Dice vectors, 19 interface/semantics
+tests, 4 spec-change fixture flips with citations.
 
 ## [1.1.0] - 2026-09-13
 
