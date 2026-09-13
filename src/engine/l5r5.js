@@ -401,7 +401,6 @@ function resolveKeptDice(pool, keptIndices, { rng, bonusDice, notes }) {
   let bonusPending = 0
 
   const keepBonus = bonusDice === 'auto_keep'
-  const showBonus = bonusDice !== 'auto_keep' // auto_drop and manual show but don't tally
 
   // BFS over kept dice's explosive symbols. Each 🔥 on a kept die (base
   // or kept bonus) rolls one same-type bonus die (book Step 6.1). A kept
@@ -433,9 +432,11 @@ function resolveKeptDice(pool, keptIndices, { rng, bonusDice, notes }) {
       // Kept bonus dice join the resolved results ("on top of their
       // current results", p. 24). Their own 🔥 chains via the queue.
       queue.push({ die: bonus, depth: depth + 1 })
-    } else if (showBonus) {
-      // auto_drop/manual: shown but not tallied; a pending bonus die's
-      // 🔥 is NOT resolved (the caller hasn't decided to keep it).
+    } else if (bonusDice === 'manual') {
+      // manual: shown but not tallied; the caller decides. A pending
+      // bonus die's 🔥 is NOT resolved (no decision to keep it yet).
+      // auto_drop's decision is already final (disposition 'dropped'),
+      // so it does not enter the pending count.
       bonusPending++
     }
   }
@@ -621,7 +622,10 @@ export function rollCheck({
     baseCount,
     keepMax,
     keepCount: keptIndices.length,
-    requestedKeepCount: kept || keepCount ? effectiveKeepCount : keepMax,
+    // "Requested" = what the caller asked to keep: the explicit
+    // selection size on the kept path, the (possibly clamped) count on
+    // the policy path, keepMax when defaulted.
+    requestedKeepCount: kept ? keptIndices.length : effectiveKeepCount,
     keptIndices,
     kept: keptDice,
     dropped: droppedDice,

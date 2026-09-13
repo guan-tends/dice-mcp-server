@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 5e engine law-fix — the corebook (pp. 20–26) as spec of record
 
-Deep-audit against Freeman's canonical corebook pages found two critical
+Deep-audit against the canonical corebook pages (the spec of record) found two critical
 defects and four law divergences. All fixed; the book is law.
 
 **Critical (correctness of every 5e check):**

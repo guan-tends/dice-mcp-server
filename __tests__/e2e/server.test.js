@@ -348,3 +348,30 @@ describe('E2E: l5r5 law-fix (v1.4.0)', () => {
     }
   })
 })
+
+describe('E2E: l5r5 manual mode over the wire (v1.4.0)', () => {
+  it("bonusDice='manual' reports pending dice and lets the caller decide", async () => {
+    // Queue: ring 6 (kept, expl), ring 1; bonus ring 5 — PENDING.
+    const rng = createSequenceRng([6, 1, 5])
+    const localServer = createDiceMcpServer({ port: TEST_PORT + 3, host: '127.0.0.1', rng })
+    await localServer.start()
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const c = new Client({ name: 'test-client', version: '1.0.0' })
+    await c.connect(new StreamableHTTPClientTransport(new URL(TEST_URL.replace(String(TEST_PORT), String(TEST_PORT + 3)))))
+    try {
+      const result = await c.callTool({
+        name: 'l5r5_roll',
+        arguments: { ring: 2, skill: 0, bonusDice: 'manual', tn: 2 },
+      })
+      expect(result.isError).toBeFalsy()
+      const parsed = JSON.parse(result.content[0].text)
+      expect(parsed.bonusDice[0]).toMatchObject({ type: 'ring', face: 5, disposition: 'pending' })
+      expect(parsed.tallies.bonusPending).toBe(1)
+      expect(parsed.totalSuccesses).toBe(2) // ring-6 ⚑+🔥 tallied; pending NOT
+      expect(parsed.notes.some((n) => n.includes('caller decides'))).toBe(true)
+    } finally {
+      await c.close()
+      await localServer.stop()
+    }
+  })
+})
