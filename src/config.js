@@ -6,10 +6,10 @@
  *   2. JSON5 config file (default: ./config.json5)
  *   3. Environment variables (DICE_MCP_PORT, DICE_MCP_HOST)
  *
- * NOTE on `host`: mcp-ai SimpleServer's express listen() binds all
- * interfaces and ignores this field. It is carried in config for future
- * mcp-ai host support; loopback-only enforcement today happens at the
- * deployment layer (systemd IPAddressDeny/Allow + UFW default-deny).
+ * NOTE on `host`: honored as of @guan-tends/mcp-ai 1.6.7-guan.0 —
+ * SimpleServer's express listen() binds only the configured interface.
+ * Loopback-only deployment layers (systemd IPAddressDeny/Allow + UFW
+ * default-deny) remain as defense-in-depth.
  *
  * @module config
  */
