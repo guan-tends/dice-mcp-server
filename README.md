@@ -222,7 +222,10 @@ cross-field rule violations (e.g. raises > Void Ring) surface as
 
 ## Deployment
 
-### Systemd (oryx pattern)
+### Systemd unit (example)
+
+Adjust paths/user for your host. If you use nvm, point `PATH` and
+`ExecStart` at your node install (or `source` nvm in an ExecStartPre).
 
 ```ini
 [Unit]
@@ -231,11 +234,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=guan
-WorkingDirectory=/home/guan/src/dice-mcp-server
-Environment="PATH=/home/guan/.nvm/versions/node/v22.22.2/bin:/usr/local/bin:/usr/bin:/bin"
-Environment="HOME=/home/guan"
-ExecStart=/home/guan/.nvm/versions/node/v22.22.2/bin/node src/index.js
+User=YOURUSER
+WorkingDirectory=/opt/dice-mcp-server
+ExecStart=/usr/bin/node src/index.js
 Restart=on-failure
 RestartSec=5
 # Loopback-only enforcement (see below)
