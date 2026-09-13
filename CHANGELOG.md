@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-09-13
+
+### GM feedback lap — two iteration points from the retest report (PASS, 26 probes)
+
+- **`explodeOn` union type** — accepts `9` (number), `"9"`, `[9, 10]`,
+  `"9,10"`, or `"none"`. The call layer no longer coerces a bare number
+  into a rejection (GM note #2). Engine already accepted
+  number | number[] | 'none'; the MCP schema now matches.
+- **`voidRing` contract made explicit** — verified pure raise-cap (a
+  dedicated test proves it never touches the pool); its description now
+  states "caps declared raises ONLY — never adds dice; spend voidPoint
+  for +1k1" (GM note #1: the observed "+1 kept" came from a client-side
+  convention shim mapping the old documented rollBonus/keepBonus path,
+  which the ratified `voidPoint=true` convention replaces).
+
+### Internal
+- Die-chain ledger semantics documented in the interface test
+  (`chain` includes the initial face; `final` = sum of the ledger).
+
 ## [1.2.1] — 2026-09-13
 
 ### Fixed

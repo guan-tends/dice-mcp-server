@@ -45,6 +45,10 @@ describe('E2E: Dice MCP Server', () => {
       7,
       // Ten Dice 14k12: ten non-10 faces, no explosion chains
       3, 6, 2, 8, 5, 9, 4, 7, 6, 5,
+      // explodeOn bare number 9 (rolled 1 kept 1): 8, no explosion
+      8,
+      // explodeOn array [9,10] (rolled 1 kept 1): 6, no explosion
+      6,
     ])
     server = createDiceMcpServer({ port: TEST_PORT, host: '127.0.0.1', rng })
     await server.start()
@@ -238,5 +242,26 @@ describe('E2E: Dice MCP Server', () => {
     expect(parsed.keepCount).toBe(10)
     expect(parsed.overflowBonus).toBe(12)
     expect(parsed.preCapPool).toEqual({ rolled: 14, kept: 12 })
+  })
+
+  it('explodeOn accepts a bare NUMBER at the MCP layer (GM note #2)', async () => {
+    // Regression for the coercion trap: z.string() rejected bare 9.
+    const result = await client.callTool({
+      name: 'l5r4_roll',
+      arguments: { rolled: 1, kept: 1, explodeOn: 9 },
+    })
+    expect(result.isError).toBeFalsy()
+    const parsed = JSON.parse(result.content[0].text)
+    expect(parsed.success).toBe(true)
+  })
+
+  it('explodeOn accepts a number ARRAY at the MCP layer (GM note #2)', async () => {
+    const result = await client.callTool({
+      name: 'l5r4_roll',
+      arguments: { rolled: 1, kept: 1, explodeOn: [9, 10] },
+    })
+    expect(result.isError).toBeFalsy()
+    const parsed = JSON.parse(result.content[0].text)
+    expect(parsed.success).toBe(true)
   })
 })

@@ -170,7 +170,9 @@ export function getTools({ rng = createCryptoRng() } = {}) {
           .min(1)
           .max(10)
           .optional()
-          .describe('Void Ring rating — caps declared raises when provided'),
+          .describe(
+            'Void Ring rating — caps declared raises ONLY. Never adds dice: spend voidPoint for +1k1',
+          ),
         emphasis: z
           .boolean()
           .default(false)
@@ -244,10 +246,10 @@ export function getTools({ rng = createCryptoRng() } = {}) {
           .default('highest')
           .describe('Keep the highest (default) or lowest dice — lowest = deliberate failure'),
         explodeOn: z
-          .string()
+          .union([z.string(), z.number(), z.array(z.number().int().min(1).max(10))])
           .optional()
           .describe(
-            'Explosion faces: "10" (default), "9" (weapon mastery), "9,10", or "none" (thrown weapons)',
+            'Explosion faces: 10 or "10" (default), 9 or "9" (weapon mastery), [9, 10] or "9,10", or "none" (thrown weapons)',
           ),
         label: schemas.label,
       },
@@ -255,9 +257,24 @@ export function getTools({ rng = createCryptoRng() } = {}) {
         withErrorHandling(async () => {
           const { explodeOn, ...rest } = input
           const parsed = { ...rest, rng }
+          // explodeOn: number | number[] | comma-string | 'none' — the call
+          // layer must never coerce a bare number into a rejection.
           if (explodeOn !== undefined && explodeOn !== null) {
             if (explodeOn === 'none') {
               parsed.explodeOn = 'none'
+            } else if (typeof explodeOn === 'number') {
+              if (!Number.isInteger(explodeOn) || explodeOn < 1 || explodeOn > 10) {
+                throw new Error(
+                  `l5r4_roll: explodeOn face must be an integer 1..10 (got ${explodeOn})`,
+                )
+              }
+              parsed.explodeOn = [explodeOn]
+            } else if (Array.isArray(explodeOn)) {
+              if (explodeOn.length === 0) {
+                parsed.explodeOn = 'none'
+              } else {
+                parsed.explodeOn = explodeOn
+              }
             } else {
               const faces = String(explodeOn)
                 .split(',')
