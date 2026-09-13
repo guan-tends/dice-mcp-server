@@ -114,11 +114,18 @@ Config (optional `config.json5`):
 ```json5
 {
   port: 3777,        // HTTP port
-  host: '127.0.0.1', // loopback ONLY by default — see config.example.json5
+  host: '127.0.0.1', // NOTE: inert (see below)
 }
 ```
 
 Environment overrides: `DICE_MCP_PORT`, `DICE_MCP_HOST`, `DICE_MCP_CONFIG`.
+
+**Loopback enforcement**: mcp-ai SimpleServer's express `listen()` binds
+all interfaces and ignores the `host` field. Loopback-only is enforced at
+the deployment layer instead — systemd `IPAddressDeny=any` +
+`IPAddressAllow=localhost` (cgroup packet filter) with UFW default-deny.
+Until mcp-ai supports a server-side bind host, deploy the service with
+both controls.
 
 ### Gateway wiring (mcp-ai aggregator)
 
