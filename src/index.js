@@ -8,7 +8,7 @@
  * @module index
  */
 
-import { loadConfig, DEFAULTS } from './config.js'
+import { loadConfig } from './config.js'
 import { createDiceMcpServer } from './mcp-server.js'
 
 /**
@@ -22,9 +22,10 @@ import { createDiceMcpServer } from './mcp-server.js'
  */
 export async function runMain({ transportDefault = 'http' } = {}) {
   const config = await loadConfig()
-  if (config.transport === DEFAULTS.transport && transportDefault !== DEFAULTS.transport) {
+  if (!config.transportExplicit && transportDefault !== config.transport) {
     // Neither config file nor env chose a transport — apply the entry's
-    // default (bin entry: stdio; library entry: http).
+    // default (bin entry: stdio; library entry: http). An EXPLICIT
+    // choice always wins over the entry default.
     config.transport = transportDefault
   }
   const server = createDiceMcpServer(config)

@@ -14,9 +14,24 @@ Built on [@guan-tends/mcp-ai](https://github.com/guan-tends/mcp-ai) SimpleServer
 
 ## Quick Start
 
+**Zero-config (stdio — most MCP clients, same as passgen):**
+
+```json
+{
+  "mcpServers": {
+    "dice": {
+      "command": "npx",
+      "args": ["-y", "@guan-tends/dice-mcp-server"]
+    }
+  }
+}
+```
+
+**HTTP (daemon style):**
+
 ```bash
 npm install
-npm test    # 154 tests
+npm test    # 168 tests
 npm start   # serves MCP HTTP on 127.0.0.1:3777
 ```
 
@@ -219,6 +234,27 @@ cross-field rule violations (e.g. raises > Void Ring) surface as
   composure is an explicit input with an advisory flag (no hardcoded
   formula); 4e wound penalties apply once to the total. `dc` is
   permissive (any integer) — permissive inputs, strict dice math.
+
+## Transports
+
+| Transport | How                              | Default for                                     |
+| --------- | -------------------------------- | ----------------------------------------------- |
+| `stdio`   | JSON-RPC over stdin/stdout pipes | the `dice-mcp-server` bin (`npx`)               |
+| `http`    | Streamable HTTP                  | the library entry (`src/index.js`, `npm start`) |
+| `sse`     | Server-Sent Events               | opt-in via env                                  |
+
+Selection precedence (highest wins): explicit `transport` option →
+`DICE_MCP_TRANSPORT` env (stdio\|http\|sse) → JSON5 config file
+`transport` key → entry default (bin: stdio, library: http).
+
+```bash
+DICE_MCP_TRANSPORT=stdio node bin/dice-mcp-server.mjs   # stdio
+DICE_MCP_TRANSPORT=http  node bin/dice-mcp-server.mjs   # http on :3777
+```
+
+stdio mode writes diagnostics to **stderr only** — stdout carries
+exclusively the MCP protocol. An explicit `DICE_MCP_TRANSPORT` (or
+config-file `transport`) always beats the entry default.
 
 ## Deployment
 

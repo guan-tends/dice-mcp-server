@@ -300,9 +300,7 @@ export function getTools({ rng = createCryptoRng() } = {}) {
 export function createDiceMcpServer(config = {}) {
   const transport = config.transport || process.env.DICE_MCP_TRANSPORT || 'http'
   if (!['stdio', 'http', 'sse'].includes(transport)) {
-    throw new Error(
-      `invalid transport "${transport}" — must be one of stdio, http, sse`,
-    )
+    throw new Error(`invalid transport "${transport}" — must be one of stdio, http, sse`)
   }
   const port = config.port || 3777
   const host = config.host || '127.0.0.1'
@@ -312,10 +310,7 @@ export function createDiceMcpServer(config = {}) {
     name: 'dice-mcp-server',
     version: '1.1.0',
     server: {
-      connection:
-        transport === 'stdio'
-          ? { type: 'cli' }
-          : { type: transport, port, host },
+      connection: transport === 'stdio' ? { type: 'cli' } : { type: transport, port, host },
     },
     tools,
   }

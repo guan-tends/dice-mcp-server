@@ -52,17 +52,22 @@ export function validateConfig(config) {
  *
  * @param {object} [env] - Environment-like object (defaults to process.env;
  *   injectable for tests).
- * @returns {Promise<{port: number, host: string, configPath: string}>}
- *   Merged configuration plus the config path used (for diagnostics).
+ * @returns {Promise<{port: number, host: string, transport: string,
+ *   configPath: string, transportExplicit: boolean}>} Merged configuration,
+ *   the config path used (for diagnostics), and whether the transport was
+ *   explicitly set by config file or env (entry defaults may not override it).
  */
 export async function loadConfig(env = process.env) {
   let config = { ...DEFAULTS }
+  let transportExplicit = false
 
   // Layer 2: JSON5 config file (optional).
   const configPath = env.DICE_MCP_CONFIG || './config.json5'
   try {
     const raw = await readFile(configPath, 'utf-8')
-    config = { ...config, ...JSON5.parse(raw) }
+    const parsed = JSON5.parse(raw)
+    if (parsed.transport !== undefined) transportExplicit = true
+    config = { ...config, ...parsed }
   } catch {
     // Config file is optional — defaults + env are sufficient.
     if (env.DICE_MCP_DEBUG) {
@@ -79,9 +84,10 @@ export async function loadConfig(env = process.env) {
   }
   if (env.DICE_MCP_TRANSPORT !== undefined) {
     config.transport = env.DICE_MCP_TRANSPORT
+    transportExplicit = true
   }
 
   validateConfig(config)
 
-  return { ...config, configPath }
+  return { ...config, configPath, transportExplicit }
 }

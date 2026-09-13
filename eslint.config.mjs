@@ -6,7 +6,7 @@ export default [
     ignores: ['node_modules/', 'coverage/'],
   },
   {
-    files: ['src/**/*.js', '__tests__/**/*.js'],
+    files: ['src/**/*.js', '__tests__/**/*.js', 'bin/**/*.mjs'],
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: 'module',
@@ -16,6 +16,7 @@ export default [
         URL: 'readonly',
         setTimeout: 'readonly',
         crypto: 'readonly',
+        fetch: 'readonly',
       },
     },
     rules: {
