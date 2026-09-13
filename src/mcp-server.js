@@ -430,16 +430,17 @@ export function getTools({ rng = createCryptoRng() } = {}) {
 /**
  * Create the Dice MCP Server.
  *
- * NOTE: `host` is INFORMATIONAL ONLY — mcp-ai SimpleServer's express
- * listen() binds all interfaces and ignores it (verified: app.listen(port),
- * no host arg). Loopback-only enforcement happens at the deployment layer:
- * systemd IPAddressDeny=any + IPAddressAllow=localhost, plus UFW
- * default-deny. See README "Loopback enforcement".
+ * NOTE: `host` is honored as of @guan-tends/mcp-ai 1.6.7-guan.0 —
+ * SimpleServer's express listen() passes it as the bind interface
+ * (app.listen(port, host)). The systemd IPAddressDeny/Allow + UFW
+ * default-deny layers remain as defense-in-depth. See README
+ * "Loopback enforcement".
  *
  * @param {object} [config]
  * @param {number} [config.port=3777] - HTTP server port (this IS honored;
  *   ignored for stdio, which speaks over stdin/stdout pipes).
- * @param {string} [config.host='127.0.0.1'] - Informational; see NOTE above.
+ * @param {string} [config.host='127.0.0.1'] - Bind interface (honored by
+ *   mcp-ai >= 1.6.7-guan.0); see NOTE above.
  * @param {'stdio'|'http'|'sse'} [config.transport] - Wire protocol.
  *   Default 'http' (back-compat); 'stdio' maps to mcp-ai's 'cli' entry
  *   (StdioServerTransport — the passgen mechanism). Env override:

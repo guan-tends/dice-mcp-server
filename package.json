@@ -1,6 +1,6 @@
 {
   "name": "@guan-tends/dice-mcp-server",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Stateless dice engine MCP tool server - generic d20-style notation, L5R 4e Roll & Keep, and L5R 5e ring/skill symbol dice, via the Model Context Protocol.",
   "type": "module",
   "main": "src/mcp-server.js",
@@ -47,7 +47,7 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@guan-tends/mcp-ai": "^1.6.5-guan.0",
+    "@guan-tends/mcp-ai": "^1.6.7-guan.0",
     "json5": "^2.2.3",
     "zod": "^3.24.0"
   },

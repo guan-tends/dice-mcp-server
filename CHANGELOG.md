@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] — 2026-09-13
+
+### Changed: `host` config now binds the interface (mcp-ai 1.6.7)
+
+- Dependency: `@guan-tends/mcp-ai` ^1.6.7-guan.0 — `connection.host` is
+  now wired through express `listen()` server-side; the previously INERT
+  `host` config field binds the actual socket (verified: `ss` shows
+  `127.0.0.1:3777`, LAN-addressed connections refused).
+- Docs: all four "INERT" notes flipped to "honored" (README roadmap line
+  closed, config.example.json5, config.js + mcp-server.js JSDocs).
+- Deployment note: systemd IPAddressDeny/Allow + UFW default-deny remain
+  in place as defense-in-depth.
+
 ## [1.4.0] — 2026-09-13
 
 ### 5e engine law-fix — the corebook (pp. 20–26) as spec of record

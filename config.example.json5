@@ -3,10 +3,8 @@
 // Environment overrides: DICE_MCP_PORT, DICE_MCP_HOST, DICE_MCP_CONFIG (config path)
 {
   port: 3777,          // HTTP port for the MCP server
-  host: '127.0.0.1',   // NOTE: currently INERT — mcp-ai SimpleServer's
-                       // express listen() binds all interfaces and ignores
-                       // this field. Loopback-only enforcement is done at
-                       // the systemd layer (IPAddressDeny=any /
-                       // IPAddressAllow=localhost) plus UFW default-deny.
-                       // Documented until mcp-ai supports server-side host.
+  host: '127.0.0.1',   // Honored as of @guan-tends/mcp-ai 1.6.7-guan.0:
+                       // express listen() binds only this interface.
+                       // systemd IPAddressDeny/Allow + UFW default-deny
+                       // remain in place as defense-in-depth.
 }

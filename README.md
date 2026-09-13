@@ -400,8 +400,10 @@ they fund compute, inference, and the rest of the tool fleet:
 ## Roadmap
 
 - **Genesys / Star Wars dice** — new symbol tables (data), same engine.
-- **mcp-ai upstream**: server-side bind-host support for express
-  `listen()` (removes the systemd-level loopback workaround).
+- ~~**mcp-ai upstream**: server-side bind-host support for express
+  `listen()`~~ — DONE upstream in @guan-tends/mcp-ai 1.6.7-guan.0
+  (consumed here via the dependency bump); systemd loopback enforcement
+  retained as defense-in-depth.
 - **Fate / other systems** — candidate engines behind the same tool
   interface.
 
