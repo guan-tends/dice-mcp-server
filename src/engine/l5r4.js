@@ -165,7 +165,17 @@ function validate(p) {
  * @param {object} parts - Roll context.
  * @returns {string[]} Notes in table-order.
  */
-function buildNotes({ untrained, emphasis, explodedCount, rerolledCount, raises, freeRaises }) {
+function buildNotes({
+  untrained,
+  emphasis,
+  explodedCount,
+  rerolledCount,
+  raises,
+  freeRaises,
+  explodeFaces,
+  voidRing,
+  voidRingNoEffect,
+}) {
   const notes = []
   if (untrained) {
     notes.push('Untrained: no skill dice, all dice kept, no explosions, no raises.')
@@ -174,13 +184,22 @@ function buildNotes({ untrained, emphasis, explodedCount, rerolledCount, raises,
     notes.push(`Emphasis: rerolled ${rerolledCount} initial 1(s) before explosions.`)
   }
   if (explodedCount > 0) {
-    notes.push(`${explodedCount} die(s) exploded on 10s.`)
+    // Name the ACTUAL armed threshold(s) — a mastery 9 must not be
+    // reported as a 10 (RT28: "the note lied, the chains didn't").
+    const faces = (explodeFaces || [10]).join(', ')
+    notes.push(`${explodedCount} die(s) exploded on face(s) ${faces}.`)
   }
   if (raises > 0 || freeRaises > 0) {
     const parts = []
     if (raises > 0) parts.push(`${raises} declared (+${raises * RAISE_TN_STEP} TN)`)
     if (freeRaises > 0) parts.push(`${freeRaises} free (effect only)`)
     notes.push(`Raises: ${parts.join(', ')}.`)
+  }
+  if (voidRingNoEffect) {
+    notes.push(
+      `Void Ring ${voidRing} caps declared raises — no raises declared, so it had no effect. ` +
+        'Spend a Void Point (voidPoint: true) for +1k1.',
+    )
   }
   return notes
 }
@@ -399,6 +418,9 @@ export function rollAndKeep({
       rerolledCount,
       raises: declaredRaises,
       freeRaises,
+      explodeFaces,
+      voidRing,
+      voidRingNoEffect: voidRing !== undefined && voidRing !== null && declaredRaises === 0,
     }),
   }
   if (success !== undefined) result.success = success

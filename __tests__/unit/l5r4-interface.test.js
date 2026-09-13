@@ -240,3 +240,38 @@ describe('GM feedback lap (v1.3.0) — RED first', () => {
     expect(r.rolled[0].final).toBe(26)
   })
 })
+
+describe('Polish lap (v1.3.1) — RED first', () => {
+  it('notes name the ACTUAL armed explosion faces (RT28 truth-in-notes)', () => {
+    // explodeOn 9: face 9 explodes, pulls 5. Note must say 9, not 10s.
+    const rng = createSequenceRng([9, 5, 5])
+    const r = rollAndKeep({ trait: 1, skill: 1, explodeOn: 9, rng })
+    const boomNote = r.notes.find((n) => n.toLowerCase().includes('exploded'))
+    expect(boomNote).toBeTruthy()
+    expect(boomNote).toMatch(/9/)
+    expect(boomNote).not.toMatch(/10s/)
+  })
+
+  it('notes name armed faces for comma-lists too', () => {
+    const rng = createSequenceRng([9, 6, 5, 5])
+    const r = rollAndKeep({ trait: 1, skill: 1, explodeOn: [9, 10], rng })
+    const boomNote = r.notes.find((n) => n.toLowerCase().includes('exploded'))
+    expect(boomNote).toMatch(/9/)
+  })
+
+  it('voidRing with NO declared raises pushes a no-effect transparency note', () => {
+    const rng = createSequenceRng([5, 5, 5, 5, 5])
+    const r = rollAndKeep({ trait: 3, skill: 2, voidRing: 3, rng })
+    const ringNote = r.notes.find((n) => n.includes('Void Ring'))
+    expect(ringNote).toBeTruthy()
+    expect(ringNote).toMatch(/no raises declared|no effect/i)
+  })
+
+  it('voidRing WITH declared raises does not add the no-effect note', () => {
+    const rng = createSequenceRng([5, 5, 5, 5, 5])
+    const r = rollAndKeep({ trait: 3, skill: 2, voidRing: 3, raises: 1, rng })
+    expect(
+      r.notes.find((n) => n.includes('Void Ring') && /no raises declared/i.test(n)),
+    ).toBeUndefined()
+  })
+})
