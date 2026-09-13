@@ -129,7 +129,7 @@ describe('rollAndKeep - TN and raises', () => {
   it('raises are capped by voidRing when provided', () => {
     const rng = createSequenceRng([9, 8, 7, 6, 5])
     expect(() => rollAndKeep({ trait: 3, skill: 2, raises: 3, voidRing: 2, rng })).toThrow(
-      /raises.*void/i
+      /raises.*void/i,
     )
   })
 

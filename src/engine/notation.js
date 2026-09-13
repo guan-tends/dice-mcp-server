@@ -102,7 +102,7 @@ function parseTerm(text, offset) {
   if (count < 1 || count > MAX_DICE_PER_ROLL) {
     throw new DiceSyntaxError(
       `die count must be between 1 and ${MAX_DICE_PER_ROLL}, got ${count} (too many dice)`,
-      offset
+      offset,
     )
   }
   if (sides < 2) {
@@ -115,7 +115,7 @@ function parseTerm(text, offset) {
     if (n < 1 || n > count) {
       throw new DiceSyntaxError(
         `cannot keep ${n} of ${count} dice — keep must be between 1 and the die count`,
-        offset
+        offset,
       )
     }
     keep = { mode: keepMode === 'kh' ? 'highest' : 'lowest', n }
@@ -131,7 +131,7 @@ function parseTerm(text, offset) {
       if (faces.some((f) => f < 1 || f > sides)) {
         throw new DiceSyntaxError(
           `explode faces must be within [1, ${sides}], got [${faces.join(', ')}]`,
-          offset
+          offset,
         )
       }
       explodeOn = faces
@@ -144,7 +144,7 @@ function parseTerm(text, offset) {
     if (n < 1 || n >= sides) {
       throw new DiceSyntaxError(
         `reroll threshold must be below the die max (1..${sides - 1}), got ${n}`,
-        offset
+        offset,
       )
     }
     reroll = n
@@ -175,20 +175,37 @@ export function parseExpression(expression) {
   const terms = []
   let constant = 0
 
-  // Split into signed segments: leading segment unsigned, subsequent signed.
-  const segments = text.match(/[+-]?[^+-]+/g)
-  if (!segments) {
-    throw new DiceSyntaxError(`cannot parse expression`, 0)
-  }
-
+  // Positional walk: at each step, optionally consume ONE sign character,
+  // then consume the sign-free body. Contiguity is structural — no input
+  // characters can be silently skipped (a doubled sign like "2d6--3"
+  // leaves a body starting with a sign, which fails the body match).
+  const SEGMENT_RE = /^([+-]?)([^+-]+)(.*)$/
+  let rest = text
   let offset = 0
-  for (const segment of segments) {
-    const segOffset = text.indexOf(segment, offset)
-    offset = segOffset + segment.length
+  let seenSegment = false
 
-    const sign = segment.startsWith('-') ? -1 : 1
-    const body = segment.replace(/^[+-]/, '')
-    const bodyOffset = segOffset + (segment.length - body.length)
+  while (rest !== '') {
+    const m = rest.match(SEGMENT_RE)
+    if (!m) {
+      // SEGMENT_RE only fails when the next char is a second sign
+      // operator (doubled signs like "2d6--3") — name that case.
+      if (rest[0] === '+' || rest[0] === '-') {
+        throw new DiceSyntaxError(
+          `doubled sign operator "${rest[0]}" — combine into a single constant ` +
+            `(e.g. "2d6-3" not "2d6--3")`,
+          offset,
+        )
+      }
+      throw new DiceSyntaxError(`unexpected character "${rest[0]}"`, offset)
+    }
+
+    const [, signChar, body, remainder] = m
+    const segOffset = offset
+    const bodyOffset = offset + signChar.length
+    offset += signChar.length + body.length
+    rest = remainder
+
+    const sign = signChar === '-' ? -1 : 1
 
     if (/^\d+$/.test(body)) {
       // Bare constant.
@@ -196,7 +213,7 @@ export function parseExpression(expression) {
       if (Math.abs(value) > MAX_CONSTANT) {
         throw new DiceSyntaxError(
           `constant magnitude must be <= ${MAX_CONSTANT}, got ${Math.abs(value)}`,
-          bodyOffset
+          bodyOffset,
         )
       }
       constant += value
@@ -207,13 +224,21 @@ export function parseExpression(expression) {
         throw new DiceSyntaxError(
           `negative die counts are not supported — die terms cannot be subtracted; ` +
             `move the sign onto a constant (e.g. "1d20-2")`,
-          bodyOffset
+          bodyOffset,
+        )
+      }
+      if (seenSegment && signChar === '') {
+        throw new DiceSyntaxError(
+          `missing sign between terms — use + or - (e.g. "2d6+1d4")`,
+          bodyOffset,
         )
       }
       terms.push(parseTerm(body, segOffset))
     } else {
       throw new DiceSyntaxError(`unexpected token "${body}"`, bodyOffset)
     }
+
+    seenSegment = true
   }
 
   return { terms, constant, raw }
