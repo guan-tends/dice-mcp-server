@@ -103,7 +103,9 @@ function validate(p) {
     }
   }
   if (rollType !== undefined && rollType !== null && !ROLL_TYPES.includes(rollType)) {
-    throw new Error(`rollAndKeep: rollType must be one of ${ROLL_TYPES.join(', ')} (got ${rollType})`)
+    throw new Error(
+      `rollAndKeep: rollType must be one of ${ROLL_TYPES.join(', ')} (got ${rollType})`,
+    )
   }
   if (keepMode !== undefined && keepMode !== null && !['highest', 'lowest'].includes(keepMode)) {
     throw new Error(`rollAndKeep: keepMode must be 'highest' or 'lowest' (got ${keepMode})`)
@@ -210,17 +212,25 @@ export function rollAndKeep({
   explodeOn: explodeOnParam,
   voidPoint = false,
 }) {
-  validate({ trait, skill, raises, freeRaises, voidRing, rolled: directRolled, kept: directKept, rollType, keepMode, untrained: untrainedFlag })
+  validate({
+    trait,
+    skill,
+    raises,
+    freeRaises,
+    voidRing,
+    rolled: directRolled,
+    kept: directKept,
+    rollType,
+    keepMode,
+    untrained: untrainedFlag,
+  })
 
   // Roll classification (D3): explicit rollType wins; then explicit
   // untrained flag; then back-compat inference (skill 0 = unskilled).
   const hasDirectPool = directRolled !== undefined && directRolled !== null
   const isUnskilled =
     rollType === 'unskilled' ||
-    (rollType === undefined &&
-      untrainedFlag === undefined &&
-      !hasDirectPool &&
-      skill === 0)
+    (rollType === undefined && untrainedFlag === undefined && !hasDirectPool && skill === 0)
   const untrained = isUnskilled
   const declaredRaises = untrained ? 0 : raises
   const appliedEmphasis = emphasis && !untrained
@@ -233,7 +243,10 @@ export function rollAndKeep({
   let rawKept
   if (hasDirectPool) {
     rawRolled = directRolled + rollBonus + voidDice
-    rawKept = (directKept !== undefined && directKept !== null ? directKept : directRolled) + keepBonus + voidDice
+    rawKept =
+      (directKept !== undefined && directKept !== null ? directKept : directRolled) +
+      keepBonus +
+      voidDice
   } else {
     rawRolled = trait + skill + rollBonus + voidDice
     rawKept = trait + keepBonus + voidDice
@@ -258,7 +271,10 @@ export function rollAndKeep({
   let explodeFaces
   if (untrained) {
     explodeFaces = null
-  } else if (explodeOnParam === 'none' || (Array.isArray(explodeOnParam) && explodeOnParam.length === 0)) {
+  } else if (
+    explodeOnParam === 'none' ||
+    (Array.isArray(explodeOnParam) && explodeOnParam.length === 0)
+  ) {
     explodeFaces = null
   } else if (explodeOnParam === undefined || explodeOnParam === null) {
     explodeFaces = [10]
@@ -279,7 +295,8 @@ export function rollAndKeep({
   const indexed = rolled.map((die, index) => ({ die, index }))
   const descending = keepMode !== 'lowest'
   indexed.sort((a, b) => {
-    if (b.die.final !== a.die.final) return descending ? b.die.final - a.die.final : a.die.final - b.die.final
+    if (b.die.final !== a.die.final)
+      return descending ? b.die.final - a.die.final : a.die.final - b.die.final
     return a.index - b.index
   })
   const kept = indexed.slice(0, keepCount).map((x) => x.die)

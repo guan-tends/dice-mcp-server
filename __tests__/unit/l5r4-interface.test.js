@@ -105,9 +105,9 @@ describe('D6 — voidPoint boolean', () => {
   })
 
   it('voidRing still caps raises (rating semantics unchanged)', () => {
-    expect(() =>
-      rollAndKeep({ trait: 3, skill: 3, voidRing: 1, raises: 2, rng: () => 5 }),
-    ).toThrow(/raise/i)
+    expect(() => rollAndKeep({ trait: 3, skill: 3, voidRing: 1, raises: 2, rng: () => 5 })).toThrow(
+      /raise/i,
+    )
   })
 })
 

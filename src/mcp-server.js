@@ -117,11 +117,18 @@ export function getTools({ rng = createCryptoRng() } = {}) {
       description:
         'Legend of the Five Rings 4th Edition Roll & Keep roll. Pools (Trait + Skill) d10s, ' +
         'keeps the highest Trait. D10s explode on 10s. Emphasis rerolls initial 1s once ' +
-        'BEFORE explosions. Raises: each adds +5 to the TN (max = Void Ring); free raises ' +
-        'add effect without TN. Untrained (skill 0): trait dice only, all kept, no ' +
-        'explosions, no raises. Wound penalties apply once to the total. TN scale: 5 ' +
+        'BEFORE explosions (trained rolls only). Raises: each adds +5 to the TN (max = ' +
+        'Void Ring); free raises add effect without TN. rollType: skill (default), trait, ' +
+        'ring (explode + raises legal), unskilled (no explosions, no raises, no emphasis), ' +
+        'custom. Direct pools: pass rolled/kept (e.g. initiative 1k4, damage 6k2, Honor ' +
+        '6k6) — kept > rolled is legal. Ten Dice Rule auto-normalizes (kept-cap +2/die, ' +
+        'rolled-cap, 2:1 conversion, leftover +2); preCapPool + overflowBonus reported. ' +
+        'Wound penalties RAISE the effective TN (never the total). Dice penalties: ' +
+        'negative rollBonus/keepBonus, kept clamps to rolled. voidPoint=true = +1k1. ' +
+        'totalBonus = flat bonus to the total (Honor). keepMode lowest = deliberate ' +
+        'failure. explodeOn: 10 (default), 9 (mastery), or comma-list. TN scale: 5 ' +
         'trivial, 10 easy, 15 average, 20 difficult, 25 very hard, 30 extreme, 40 ' +
-        'near-impossible. Void Point = +1k1: pass rollBonus=1 and keepBonus=1.',
+        'near-impossible, 60 impossible.',
       inputSchema: {
         trait: z
           .number()
@@ -166,26 +173,99 @@ export function getTools({ rng = createCryptoRng() } = {}) {
           .number()
           .int()
           .default(0)
-          .describe('Wound/stance penalty applied once to the total (e.g. -10)'),
+          .describe(
+            'Wound/stance penalty — RAISES the effective TN (never the total). Nicked +3, Grazed +5, Hurt +10, Injured +15, Crippled +20, Down +40',
+          ),
         rollBonus: z
           .number()
           .int()
-          .min(0)
+          .min(-10)
           .max(10)
           .default(0)
-          .describe('Extra rolled dice (Void Point +1k1 => rollBonus 1)'),
+          .describe(
+            'Extra (+) or penalty (−) rolled dice. Void Point +1k1 => rollBonus 1 + keepBonus 1, or just voidPoint=true',
+          ),
         keepBonus: z
           .number()
           .int()
-          .min(0)
+          .min(-10)
           .max(10)
           .default(0)
-          .describe('Extra kept dice (Void Point +1k1 => keepBonus 1)'),
+          .describe('Extra (+) or penalty (−) kept dice (kept clamps to rolled after subtraction)'),
+        rolled: z
+          .number()
+          .int()
+          .min(1)
+          .max(50)
+          .optional()
+          .describe(
+            'Direct pool: rolled dice (overrides trait/skill). Initiative 1k4, damage 6k2, Honor 6k6',
+          ),
+        kept: z
+          .number()
+          .int()
+          .min(1)
+          .max(50)
+          .optional()
+          .describe(
+            'Direct pool: kept dice (with rolled). kept > rolled is legal (initiative = Insight k Reflexes)',
+          ),
+        rollType: z
+          .enum(['skill', 'trait', 'ring', 'unskilled', 'custom'])
+          .optional()
+          .describe(
+            'Roll classification. trait/ring/custom explode + allow raises; unskilled: no explosions/raises/emphasis. Default: skill',
+          ),
+        untrained: z
+          .boolean()
+          .optional()
+          .describe(
+            'Explicit untrained flag — false with skill 0 = Trait roll (explodes, raises legal)',
+          ),
+        voidPoint: z
+          .boolean()
+          .default(false)
+          .describe('Spend a Void Point: +1k1 to the pool (declared before the roll)'),
+        totalBonus: z
+          .number()
+          .int()
+          .default(0)
+          .describe(
+            'Flat bonus to the kept sum (Honor Rank on Fear resistance, etc.) — distinct from dice bonuses',
+          ),
+        keepMode: z
+          .enum(['highest', 'lowest'])
+          .default('highest')
+          .describe('Keep the highest (default) or lowest dice — lowest = deliberate failure'),
+        explodeOn: z
+          .string()
+          .optional()
+          .describe(
+            'Explosion faces: "10" (default), "9" (weapon mastery), "9,10", or "none" (thrown weapons)',
+          ),
         label: schemas.label,
       },
       execute: async (input) =>
         withErrorHandling(async () => {
-          const result = rollAndKeep({ ...input, rng })
+          const { explodeOn, ...rest } = input
+          const parsed = { ...rest, rng }
+          if (explodeOn !== undefined && explodeOn !== null) {
+            if (explodeOn === 'none') {
+              parsed.explodeOn = 'none'
+            } else {
+              const faces = String(explodeOn)
+                .split(',')
+                .map((f) => Number.parseInt(f.trim(), 10))
+                .filter((f) => Number.isInteger(f) && f >= 1 && f <= 10)
+              if (faces.length === 0) {
+                throw new Error(
+                  `l5r4_roll: explodeOn must be a face like "10", a comma-list like "9,10", or "none" (got ${explodeOn})`,
+                )
+              }
+              parsed.explodeOn = faces
+            }
+          }
+          const result = rollAndKeep(parsed)
           return success(result)
         }),
     },
