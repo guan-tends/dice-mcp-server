@@ -13,7 +13,7 @@ describe('rollDice - basic rolling', () => {
   it('each die records its face, empty chain, and final', () => {
     const rng = createSequenceRng([4])
     const [die] = rollDice({ sides: 10, count: 1, rng })
-    expect(die).toEqual({ face: 4, chain: [], final: 4, emphasisRerolled: false })
+    expect(die).toEqual({ face: 4, chain: [], final: 4, rerolled: false })
   })
 
   it('rolls nothing when count is 0', () => {
@@ -31,7 +31,7 @@ describe('rollDice - explosion', () => {
     expect(result[0].face).toBe(10)
     expect(result[0].chain).toEqual([10, 10, 4])
     expect(result[0].final).toBe(24)
-    expect(result[1]).toEqual({ face: 6, chain: [], final: 6, emphasisRerolled: false })
+    expect(result[1]).toEqual({ face: 6, chain: [], final: 6, rerolled: false })
   })
 
   it('explodes only when face is in explodeOn', () => {
@@ -69,15 +69,15 @@ describe('rollDice - explosion', () => {
   })
 })
 
-describe('rollDice - emphasis reroll', () => {
+describe('rollDice - reroll (4e emphasis = rerollBelow 1)', () => {
   it('rerolls 1s once BEFORE explosions, per 4e emphasis ordering', () => {
     // Emphasis rerolls initial 1s ONCE, BEFORE any explosion check.
     // Chain rolls produced by explosions are NOT subject to emphasis.
     const rng = createSequenceRng([1, 5, 10, 10, 4])
-    const result = rollDice({ sides: 10, count: 2, rng, explodeOn: [10], emphasis: true })
+    const result = rollDice({ sides: 10, count: 2, rng, explodeOn: [10], rerollBelow: 1 })
     // Die 1: initial 1 -> emphasis reroll -> 5. face is the current face.
     expect(result[0].face).toBe(5)
-    expect(result[0].emphasisRerolled).toBe(true)
+    expect(result[0].rerolled).toBe(true)
     expect(result[0].final).toBe(5)
     // Die 2: initial 10 -> explode -> 10 -> explode -> 4. final 24.
     expect(result[1].chain).toEqual([10, 10, 4])
@@ -86,26 +86,26 @@ describe('rollDice - emphasis reroll', () => {
 
   it('a rerolled 1 stays a 1 (emphasis applies once)', () => {
     const rng = createSequenceRng([1, 1])
-    const result = rollDice({ sides: 10, count: 1, rng, emphasis: true })
+    const result = rollDice({ sides: 10, count: 1, rng, rerollBelow: 1 })
     expect(result[0].face).toBe(1)
-    expect(result[0].emphasisRerolled).toBe(true)
+    expect(result[0].rerolled).toBe(true)
     expect(result[0].final).toBe(1)
   })
 
   it('rerolled 10 explodes (emphasis precedes explosion check)', () => {
     // Initial 1 -> reroll 10 -> now explode check applies -> chain 7.
     const rng = createSequenceRng([1, 10, 7])
-    const result = rollDice({ sides: 10, count: 1, rng, explodeOn: [10], emphasis: true })
-    expect(result[0].emphasisRerolled).toBe(true)
+    const result = rollDice({ sides: 10, count: 1, rng, explodeOn: [10], rerollBelow: 1 })
+    expect(result[0].rerolled).toBe(true)
     expect(result[0].chain).toEqual([10, 7])
     expect(result[0].final).toBe(17)
   })
 
   it('emphasis without explodeAt simply rerolls 1s', () => {
     const rng = createSequenceRng([1, 3])
-    const result = rollDice({ sides: 6, count: 1, rng, emphasis: true })
+    const result = rollDice({ sides: 6, count: 1, rng, rerollBelow: 1 })
     expect(result[0].final).toBe(3)
-    expect(result[0].emphasisRerolled).toBe(true)
+    expect(result[0].rerolled).toBe(true)
   })
 })
 
