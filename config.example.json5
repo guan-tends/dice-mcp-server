@@ -1,0 +1,9 @@
+// Dice MCP Server configuration
+// Copy to config.json5 and adjust as needed. All fields optional.
+// Environment overrides: DICE_MCP_PORT, DICE_MCP_HOST, DICE_MCP_CONFIG (config path)
+{
+  port: 3777,          // HTTP port for the MCP server
+  host: '127.0.0.1',   // Bind address. Default is loopback ONLY — the mcp-ai
+                       // aggregator runs on the same host. Use '0.0.0.0' to
+                       // expose on LAN (then secure with a firewall rule).
+}
