@@ -42,14 +42,14 @@ defects and four law divergences. All fixed; the book is law.
   of the book's named categories (Distinction/Adversity/Passion/
   Anxiety); `conversions` remains the book-accurate surface.
 - **Assistance implemented** (p. 26): `assistants: {skilled,
-  unskilled}` adds +1 skill die per skilled helper, +1 ring die per
+unskilled}` adds +1 skill die per skilled helper, +1 ring die per
   unskilled helper; the keep max rises +1 per assistant.
 
 **Flag directive (every automation is an explicit, transparent param):**
 
 - `bonusDice`: `auto_keep` (default — tallied) | `auto_drop` (rolled
   and shown, not tallied) | `manual` (rolled, shown, `tallies.
-  bonusPending` — the caller decides from the audit array). All modes
+bonusPending` — the caller decides from the audit array). All modes
   roll and show the dice; the result always shows what occurred.
 - `includeExplosionBonuses` deprecated: maps to `bonusDice`
   (true → auto_keep, false → auto_drop); combining both is rejected.
@@ -97,12 +97,14 @@ re-derived empirically (kept-bonus tallies raise E[⚑] 1.625 → ~1.89 at
   which the ratified `voidPoint=true` convention replaces).
 
 ### Internal
+
 - Die-chain ledger semantics documented in the interface test
   (`chain` includes the initial face; `final` = sum of the ledger).
 
 ## [1.2.1] — 2026-09-13
 
 ### Fixed
+
 - **serverInfo.version single source of truth**: the MCP `initialize`
   response now derives its version from `package.json` (via
   `createRequire`) instead of a hand-synced literal — v1.2.0 shipped
@@ -118,9 +120,10 @@ RPG agent; this release closes every defect found and adopts the verbatim
 table-law spec (Report B).
 
 **Fixed**
+
 - **D1 — Ten Dice Rule** (§4): the signature normalization is now implemented
   verbatim — kept-cap first (+2 per excess kept die), rolled-cap, 2:1
-  rolled→kept conversion *while kept < 10*, leftover +2 flat. Canonical
+  rolled→kept conversion _while kept < 10_, leftover +2 flat. Canonical
   vectors: 12k4→10k5 · 13k9→10k10+2 · 10k12→10k10+4 · 14k12→10k10+12 ·
   11k2 damage→10k2+2. Output adds `preCapPool` + `overflowBonus` for audit.
 - **D2 — kept > rolled legal** (§5): initiative = Insight k Reflexes (1k4),
@@ -141,6 +144,7 @@ table-law spec (Report B).
   failure is legal).
 
 **Added**
+
 - `totalBonus` — flat bonus to the kept sum (Honor Rank on Fear resistance,
   §11), distinct from dice bonuses.
 - `explodeOn` — explosion faces: `10` (default), `9` (weapon mastery),
