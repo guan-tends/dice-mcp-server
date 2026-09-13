@@ -5,6 +5,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] — 2026-09-13
+
+### 5e engine law-fix — the corebook (pp. 20–26) as spec of record
+
+Deep-audit against Freeman's canonical corebook pages found two critical
+defects and four law divergences. All fixed; the book is law.
+
+**Critical (correctness of every 5e check):**
+
+- **Bonus-die symbols are now tallied.** Previously bonus dice from
+  explosive faces existed in the pool but contributed NOTHING to the
+  result — every explosion was decorative. Per the Sakura worked example
+  (p. 23), the bonus die's symbols count toward the TN: kept bonus dice
+  are tallied, and a kept bonus die's own explosive chains.
+- **totalSuccesses = ⚑ + 🔥** (p. 24: "the sum total of success and
+  explosive success symbols"). Previously only ⚑ was compared against
+  the TN — a kept skill-12 (pure explosive face) scored 0 instead of 1,
+  a kept ring-6 scored 1 instead of 2. New outputs: `totalSuccesses`,
+  `bonusSuccesses`, `shortfall` (p. 26 margin rules; competitive checks
+  compare these).
+
+**Law fixes:**
+
+- **Keep 1..ring dice** (p. 24: "at least one... up to the value of the
+  ring") — was locked to exactly-ring. New `keepCount` param (defaults
+  to the max; over-max clamps with a note); `kept` override accepts
+  1..keepMax.
+- **Explosions resolve post-keep, from kept dice only** (Step 6.1) —
+  was pre-spawned from all rolled dice at pool build. Dropped dice's
+  🔥 now does nothing; bonus dice are rolled after selection, audited
+  in a structured `bonusDice[]` array (source, face, symbols,
+  chainDepth, disposition), and kept bonus dice chain.
+- **Advantage + disadvantage CANCEL** per the consolidate rule (p. 24)
+  — was a hard error. Both flags are documented house simplifications
+  of the book's named categories (Distinction/Adversity/Passion/
+  Anxiety); `conversions` remains the book-accurate surface.
+- **Assistance implemented** (p. 26): `assistants: {skilled,
+  unskilled}` adds +1 skill die per skilled helper, +1 ring die per
+  unskilled helper; the keep max rises +1 per assistant.
+
+**Flag directive (every automation is an explicit, transparent param):**
+
+- `bonusDice`: `auto_keep` (default — tallied) | `auto_drop` (rolled
+  and shown, not tallied) | `manual` (rolled, shown, `tallies.
+  bonusPending` — the caller decides from the audit array). All modes
+  roll and show the dice; the result always shows what occurred.
+- `includeExplosionBonuses` deprecated: maps to `bonusDice`
+  (true → auto_keep, false → auto_drop); combining both is rejected.
+
+**Transparency:** tallies stay raw (⚑/⧫/⏳/🔥 field sums);
+`totalSuccesses` is derived. Every automated decision — bonus-die
+dispositions, under-keeps, clamps, consolidate cancels, assistance —
+appears in `notes[]` and structured fields. House safety valve
+`MAX_BONUS_CHAIN = 10` disclosed (the book is naturally finite; the
+automation guard is not).
+
+**Tests:** 220 → 236. RED-first acceptance tests encode the book's own
+worked example (Sakura, p. 23) and now pass; distribution expectation
+re-derived empirically (kept-bonus tallies raise E[⚑] 1.625 → ~1.89 at
+50k rolls).
+
 ## [1.3.1] — 2026-09-13
 
 ### Polish lap — GM optional items
