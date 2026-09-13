@@ -269,3 +269,82 @@ describe('E2E: Dice MCP Server', () => {
     expect(parsed.success).toBe(true)
   })
 })
+
+// ── v1.4.0 law-fix additions (Sakura acceptance through the wire) ──
+// NOTE: appended AFTER all earlier tests so the shared-RNG queue alignment
+// above is untouched (order-coupled, see the beforeAll comment).
+describe('E2E: l5r5 law-fix (v1.4.0)', () => {
+  it('Sakura (book p. 23) through the MCP boundary: bonus die completes TN 3', async () => {
+    // Queue: ring 6, ring 2, ring 2, skill 3 (base); bonus ring 5 (kept
+    // ring-6 explodes post-keep). Result: totalSuccesses 3 = TN 3.
+    const rng = createSequenceRng([6, 2, 2, 3, 5])
+    const localServer = createDiceMcpServer({ port: TEST_PORT + 1, host: '127.0.0.1', rng })
+    await localServer.start()
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const c = new Client({ name: 'test-client', version: '1.0.0' })
+    await c.connect(
+      new StreamableHTTPClientTransport(
+        new URL(TEST_URL.replace(String(TEST_PORT), String(TEST_PORT + 1))),
+      ),
+    )
+    try {
+      const result = await c.callTool({
+        name: 'l5r5_roll',
+        arguments: { ring: 3, skill: 1, tn: 3 },
+      })
+      expect(result.isError).toBeFalsy()
+      const parsed = JSON.parse(result.content[0].text)
+      expect(parsed.success).toBe(true)
+      expect(parsed.totalSuccesses).toBe(3)
+      expect(parsed.bonusDice).toHaveLength(1)
+      expect(parsed.bonusDice[0]).toMatchObject({ type: 'ring', face: 5, disposition: 'kept' })
+      expect(parsed.notes.some((n) => n.includes('Step 6.1'))).toBe(true)
+    } finally {
+      await c.close()
+      await localServer.stop()
+    }
+  })
+
+  it('accepts the new v1.4.0 params (assistants, keepCount, bonusDice) over the wire', async () => {
+    // Pool order (book p. 22 + p. 26): ring dice, skill dice, skilled
+    // helpers (skill dice), unskilled helpers (ring dice). Queue:
+    // ring 6 (expl), skilled helper skill 8 (d12), unskilled helper
+    // ring 4, bonus ring 2 (kept ring-6 explodes post-keep; auto_drop
+    // shows it, NOT tallied). keepMax = 1 + 2 = 3; all 4 dice... 3 kept
+    // (skill 8, ring 6, ring 4 — all of them).
+    const rng = createSequenceRng([6, 8, 4, 2])
+    const localServer = createDiceMcpServer({ port: TEST_PORT + 2, host: '127.0.0.1', rng })
+    await localServer.start()
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const c = new Client({ name: 'test-client', version: '1.0.0' })
+    await c.connect(
+      new StreamableHTTPClientTransport(
+        new URL(TEST_URL.replace(String(TEST_PORT), String(TEST_PORT + 2))),
+      ),
+    )
+    try {
+      const result = await c.callTool({
+        name: 'l5r5_roll',
+        arguments: {
+          ring: 1,
+          skill: 0,
+          assistants: { skilled: 1, unskilled: 1 },
+          bonusDice: 'auto_drop',
+          tn: 2,
+        },
+      })
+      expect(result.isError).toBeFalsy()
+      const parsed = JSON.parse(result.content[0].text)
+      expect(parsed.baseCount).toBe(3) // ring + skilled helper + unskilled helper (bonus dice are outside the base pool)
+      expect(parsed.keepMax).toBe(3)
+      expect(parsed.bonusDice[0]).toMatchObject({ type: 'ring', face: 2, disposition: 'dropped' })
+      // bonusPending only appears in 'manual' mode; auto_drop omits it.
+      expect('bonusPending' in parsed.tallies).toBe(false)
+      expect(parsed.totalSuccesses).toBe(4) // 3 ⚑ (skill8, ring4, ring6) + 1 🔥 (kept ring-6)
+      expect(parsed.notes.some((n) => n.includes('Assistance (book p. 26)'))).toBe(true)
+    } finally {
+      await c.close()
+      await localServer.stop()
+    }
+  })
+})
