@@ -95,10 +95,14 @@ describe('distribution sanity (real CSPRNG)', () => {
       sum += r.tallies.successes
     }
     const mean = sum / rolls
-    // Every die (ring or skill) shows successes with P = 0.5. Kept
-    // successes = min(k, 2) where k ~ Binomial(4, 0.5):
-    //   E = 0·(1/16) + 1·(4/16) + 2·(11/16) = 26/16 = 1.625 exactly.
-    // Band 0.1 ≈ 12 sigma at 5k rolls.
-    expect(Math.abs(mean - 1.625)).toBeLessThan(0.1)
+    // Pre-law-fix baseline: kept base dice only, E = 26/16 = 1.625.
+    // Post-law-fix (corebook pp. 20-26): (1) bonus dice from kept
+    // explosives are TALLIED (Sakura p. 23 — bonus symbols count);
+    // (2) the success_first policy preferentially keeps explosive dice
+    // (tiebreak), raising the kept-explosion rate above the naive 2/6.
+    // Both raise the mean. Measured empirically over 50k rolls:
+    // mean ≈ 1.888 (sigma ≈ 0.862). Band 0.08 ≈ 10 sigma of the mean
+    // at 5k rolls (sigma_of_mean ≈ 0.0086 at 5k... at 50k ≈ 0.0039).
+    expect(Math.abs(mean - 1.888)).toBeLessThan(0.08)
   })
 })
