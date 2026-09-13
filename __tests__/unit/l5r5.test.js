@@ -240,3 +240,77 @@ describe('rollCheck - validation', () => {
     expect(() => rollCheck({ ring: 1, skill: 0, rng: createSequenceRng([]), tn: 11 })).toThrow(/tn/)
   })
 })
+
+describe('rollCheck — book law (corebook pp. 20–26): totalSuccesses & bonus dice', () => {
+  // ACCEPTANCE TEST — the Sakura worked example (corebook p. 23).
+  // Ring 3 + Fitness 1, TN 3. Queue: ring 6 (succ+strife+expl), ring 2
+  // (opp+strife), ring 2 (opp+strife), skill 3 (opp); bonus die from the
+  // kept ring-6 explosive rolls face 5 (succ).
+  // Book resolution: keep 3 dice (ring6, skill3, ring2) -> kept base ⚑ = 1
+  // (ring6) + 🔥 = 1; kept bonus die ⚑ = 1. totalSuccesses = ⚑+🔥 = 3 >= TN 3
+  // -> SUCCESS (the book's own outcome).
+  // The pre-law-fix engine FAILS this: bonus dice are never tallied and
+  // 🔥 does not count toward the TN comparison (defects D-A and D-B).
+  it('Sakura (p. 23): kept bonus die completes the TN; 🔥 counts as a success', () => {
+    const rng = createSequenceRng([6, 2, 2, 3, 5])
+    const r = rollCheck({ ring: 3, skill: 1, tn: 3, rng })
+    expect(r.success).toBe(true)
+    expect(r.totalSuccesses).toBe(3)
+    // Kept base dice include the ring-6 (the best die under any policy).
+    const keptTypes = r.kept.map((d) => `${d.type}:${d.face}`)
+    expect(keptTypes).toContain('ring:6')
+    // The bonus die exists and is audited: same type as its source (ring),
+    // face 5, chain depth 1, disposition kept (auto_keep default).
+    expect(r.bonusDice).toHaveLength(1)
+    expect(r.bonusDice[0]).toMatchObject({
+      type: 'ring',
+      face: 5,
+      chainDepth: 1,
+      disposition: 'kept',
+    })
+    expect(r.bonusDice[0].sourceDieIndex).toBeGreaterThan(0)
+    // Bonus die symbols are TALLIED (defect D-A): ring6 ⚑ + bonus ⚑ = 2.
+    expect(r.tallies.successes).toBe(2)
+    expect(r.tallies.explosive).toBe(1)
+    // totalSuccesses = ⚑ + 🔥 (defect D-B): 2 ⚑ + 1 🔥 = 3.
+    expect(r.totalSuccesses).toBe(3)
+    expect(r.bonusSuccesses).toBe(0)
+    expect(r.shortfall).toBe(0)
+  })
+
+  // D-B: a kept skill-12 shows ZERO ⚑ but its 🔥 counts as one success in
+  // the total ("the sum total of ⚑ and 🔥 symbols", pp. 20 + 24).
+  it('kept skill-12 (pure explosive face) counts as 1 success toward TN', () => {
+    // Ring 1, skill 1. Queue: ring 1 (blank), skill 12 (expl only), bonus
+    // skill 1 (blank). Explicit keep: the skill-12 alone (kept='2').
+    const rng = createSequenceRng([1, 12, 1])
+    const r = rollCheck({ ring: 1, skill: 1, tn: 1, rng, kept: '2' })
+    // Its 🔥 alone must satisfy TN 1 (p. 24: "sum total of ⚑ and 🔥").
+    expect(r.totalSuccesses).toBe(1)
+    expect(r.success).toBe(true)
+  })
+
+  // D-B: a kept ring-6 counts ⚑ + 🔥 = 2 successes (not 1).
+  it('kept ring-6 counts as 2 successes (⚑ + 🔥)', () => {
+    // Ring 2, skill 0. Queue: ring 6 (expl), ring 1 (blank); bonus ring 3
+    // (opp). Explicit keep: the ring-6 alone; bonus die face 3 kept by
+    // default (auto_keep).
+    const rng = createSequenceRng([6, 1, 3])
+    const r = rollCheck({ ring: 2, skill: 0, tn: 2, rng, kept: '1' })
+    expect(r.totalSuccesses).toBe(2)
+    expect(r.success).toBe(true)
+  })
+
+  // D2: explosions trigger from KEPT dice only — a dropped explosive die
+  // spawns nothing (the rng sequence proves no bonus roll is consumed).
+  it('explosive symbol on a DROPPED die spawns no bonus die', () => {
+    // Ring 2, skill 1. Queue: ring 6 (expl), ring 1 (blank), skill 8 (succ).
+    // Keep only the skill-8 (explicit kept='3'): the ring-6 is dropped, so
+    // no bonus die may be rolled — the sequence has no 4th value, and an
+    // erroneous bonus roll would throw "sequence exhausted".
+    const rng = createSequenceRng([6, 1, 8])
+    const r = rollCheck({ ring: 2, skill: 1, rng, kept: '3' })
+    expect(r.bonusDice).toHaveLength(0)
+    expect(r.explosiveTriggers).toBe(0)
+  })
+})
