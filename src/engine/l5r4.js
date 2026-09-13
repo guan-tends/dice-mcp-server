@@ -82,13 +82,31 @@ export function applyTenDiceRule(rawRolled, rawKept) {
  * @param {object} p - See rollAndKeep.
  * @throws {Error} On invalid parameters.
  */
+const ROLL_TYPES = ['skill', 'trait', 'ring', 'unskilled', 'custom']
+
 function validate(p) {
-  const { trait, skill, raises, freeRaises, voidRing } = p
-  if (!Number.isInteger(trait) || trait < 1 || trait > 10) {
-    throw new Error(`rollAndKeep: trait must be an integer in 1..10 (got ${trait})`)
+  const { trait, skill, raises, freeRaises, voidRing, rolled, kept, rollType, keepMode } = p
+  const hasDirectPool = rolled !== undefined && rolled !== null
+  if (!hasDirectPool) {
+    if (!Number.isInteger(trait) || trait < 1 || trait > 10) {
+      throw new Error(`rollAndKeep: trait must be an integer in 1..10 (got ${trait})`)
+    }
+    if (!Number.isInteger(skill) || skill < 0 || skill > 10) {
+      throw new Error(`rollAndKeep: skill must be an integer in 0..10 (got ${skill})`)
+    }
+  } else {
+    if (!Number.isInteger(rolled) || rolled < 1 || rolled > 50) {
+      throw new Error(`rollAndKeep: rolled must be an integer in 1..50 (got ${rolled})`)
+    }
+    if (kept !== undefined && kept !== null && (!Number.isInteger(kept) || kept < 1 || kept > 50)) {
+      throw new Error(`rollAndKeep: kept must be an integer in 1..50 (got ${kept})`)
+    }
   }
-  if (!Number.isInteger(skill) || skill < 0 || skill > 10) {
-    throw new Error(`rollAndKeep: skill must be an integer in 0..10 (got ${skill})`)
+  if (rollType !== undefined && rollType !== null && !ROLL_TYPES.includes(rollType)) {
+    throw new Error(`rollAndKeep: rollType must be one of ${ROLL_TYPES.join(', ')} (got ${rollType})`)
+  }
+  if (keepMode !== undefined && keepMode !== null && !['highest', 'lowest'].includes(keepMode)) {
+    throw new Error(`rollAndKeep: keepMode must be 'highest' or 'lowest' (got ${keepMode})`)
   }
   if (raises !== undefined && raises !== null && (!Number.isInteger(raises) || raises < 0)) {
     throw new Error(`rollAndKeep: raises must be a non-negative integer (got ${raises})`)
@@ -111,9 +129,12 @@ function validate(p) {
       )
     }
   }
-  if (skill === 0 && raises > 0) {
+  const unskilled =
+    p.rollType === 'unskilled' ||
+    (p.rollType === undefined && p.untrained === undefined && p.skill === 0 && !hasDirectPool)
+  if (unskilled && raises > 0) {
     throw new Error(
-      'rollAndKeep: untrained rolls (skill 0) cannot benefit from Raises — remove raises or train the skill',
+      'rollAndKeep: untrained rolls cannot benefit from Raises — remove raises or train the skill',
     )
   }
 }
@@ -180,44 +201,97 @@ export function rollAndKeep({
   rollBonus = 0,
   keepBonus = 0,
   label,
+  rolled: directRolled,
+  kept: directKept,
+  rollType,
+  untrained: untrainedFlag,
+  keepMode = 'highest',
+  totalBonus = 0,
+  explodeOn: explodeOnParam,
+  voidPoint = false,
 }) {
-  validate({ trait, skill, raises, freeRaises, voidRing })
+  validate({ trait, skill, raises, freeRaises, voidRing, rolled: directRolled, kept: directKept, rollType, keepMode, untrained: untrainedFlag })
 
-  const untrained = skill === 0
+  // Roll classification (D3): explicit rollType wins; then explicit
+  // untrained flag; then back-compat inference (skill 0 = unskilled).
+  const hasDirectPool = directRolled !== undefined && directRolled !== null
+  const isUnskilled =
+    rollType === 'unskilled' ||
+    (rollType === undefined &&
+      untrainedFlag === undefined &&
+      !hasDirectPool &&
+      skill === 0)
+  const untrained = isUnskilled
   const declaredRaises = untrained ? 0 : raises
+  const appliedEmphasis = emphasis && !untrained
 
-  // Raw pools BEFORE the Ten Dice Rule (audit-visible).
-  const rawRolled = trait + skill + rollBonus
-  const rawKept = trait + keepBonus
+  // Raw pools BEFORE the Ten Dice Rule (audit-visible). Direct pool
+  // input (D2: initiative 1k4, damage 6k2, Honor 6k6) overrides
+  // trait/skill. voidPoint = +1k1 (D6). Negative bonuses legal (D5).
+  const voidDice = voidPoint ? 1 : 0
+  let rawRolled
+  let rawKept
+  if (hasDirectPool) {
+    rawRolled = directRolled + rollBonus + voidDice
+    rawKept = (directKept !== undefined && directKept !== null ? directKept : directRolled) + keepBonus + voidDice
+  } else {
+    rawRolled = trait + skill + rollBonus + voidDice
+    rawKept = trait + keepBonus + voidDice
+  }
+  // D5 clamp (§10): a DICE PENALTY (negative bonus) subtracts rolled dice
+  // and clamps kept <= rolled. Base pools are NOT clamped — initiative
+  // 1k4 (Insight rolled / Reflexes kept) is legal as declared.
+  if (rollBonus < 0 || keepBonus < 0) {
+    rawKept = Math.min(rawKept, rawRolled)
+  }
+  rawRolled = Math.max(1, rawRolled)
+  rawKept = Math.max(1, rawKept)
 
   // Ten Dice Rule normalization (kept-cap → rolled-cap → 2:1 → leftover).
   const normalized = applyTenDiceRule(rawRolled, rawKept)
   const pool = normalized.rolled
-  const keepCount = Math.max(1, Math.min(normalized.kept, pool))
+  const keepCount = Math.max(1, normalized.kept)
   const overflowBonus = normalized.overflowBonus
+
+  // Explosion policy (§3): default 10; caller may widen (mastery 9),
+  // list faces, or disable ('none'). Untrained d10s never explode (§9).
+  let explodeFaces
+  if (untrained) {
+    explodeFaces = null
+  } else if (explodeOnParam === 'none' || (Array.isArray(explodeOnParam) && explodeOnParam.length === 0)) {
+    explodeFaces = null
+  } else if (explodeOnParam === undefined || explodeOnParam === null) {
+    explodeFaces = [10]
+  } else {
+    explodeFaces = Array.isArray(explodeOnParam) ? explodeOnParam : [explodeOnParam]
+  }
 
   const rolled = rollDice({
     sides: 10,
     count: pool,
     rng,
-    // Explosions only for trained rolls. Untrained d10s never explode.
-    explodeOn: untrained ? null : [10],
-    // Emphasis rerolls apply in both cases (a reroll is not an explosion).
-    rerollBelow: emphasis ? 1 : null,
+    explodeOn: explodeFaces,
+    // Emphasis rerolls 1s once, BEFORE explosion checks — trained only (D7/§8).
+    rerollBelow: appliedEmphasis ? 1 : null,
   })
 
-  // Keep the highest finals (explosion sums included). Ties: earlier roll wins.
+  // Keep selection (D8/§1): highest by default; lowest = deliberate failure.
   const indexed = rolled.map((die, index) => ({ die, index }))
-  indexed.sort((a, b) =>
-    b.die.final !== a.die.final ? b.die.final - a.die.final : a.index - b.index,
-  )
+  const descending = keepMode !== 'lowest'
+  indexed.sort((a, b) => {
+    if (b.die.final !== a.die.final) return descending ? b.die.final - a.die.final : a.die.final - b.die.final
+    return a.index - b.index
+  })
   const kept = indexed.slice(0, keepCount).map((x) => x.die)
   const dropped = indexed.slice(keepCount).map((x) => x.die)
 
   const keptSum = kept.reduce((s, d) => s + d.final, 0)
-  const total = keptSum + overflowBonus + penalty
+  // §10/D4: the wound penalty raises the EFFECTIVE TN — it never touches
+  // the total. Reported in totals for the audit trail, not summed.
+  const total = keptSum + overflowBonus + totalBonus
 
-  const effectiveTn = tn !== undefined && tn !== null ? tn + declaredRaises * RAISE_TN_STEP : null
+  const effectiveTn =
+    tn !== undefined && tn !== null ? tn + declaredRaises * RAISE_TN_STEP + penalty : null
   const success = effectiveTn !== null ? total >= effectiveTn : undefined
 
   // Narration hook: the roll failed the effective TN but the unraised,
@@ -225,8 +299,8 @@ export function rollAndKeep({
   // AND "the wound penalty cost me the roll".
   let wouldSucceedWithoutRaises
   if (success === false) {
-    const unraisedTotal = keptSum // penalty excluded, raises excluded
-    if (unraisedTotal >= tn && (declaredRaises > 0 || penalty < 0)) {
+    const unraisedTotal = keptSum + overflowBonus + totalBonus
+    if (unraisedTotal >= tn && (declaredRaises > 0 || penalty > 0)) {
       wouldSucceedWithoutRaises = true
     }
   }
@@ -244,7 +318,9 @@ export function rollAndKeep({
     untrained,
     overflowBonus,
     preCapPool: normalized.preCap,
-    totals: { keptSum, overflowBonus, penalty, total },
+    rollType: rollType || (untrained ? 'unskilled' : 'skill'),
+    keepMode,
+    totals: { keptSum, overflowBonus, totalBonus, penalty, total },
     tn: { base: tn, raises: declaredRaises, effective: effectiveTn },
     raises: {
       declared: declaredRaises,
