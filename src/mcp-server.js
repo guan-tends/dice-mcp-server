@@ -287,29 +287,47 @@ export function getTools({ rng = createCryptoRng() } = {}) {
  * default-deny. See README "Loopback enforcement".
  *
  * @param {object} [config]
- * @param {number} [config.port=3777] - HTTP server port (this IS honored).
+ * @param {number} [config.port=3777] - HTTP server port (this IS honored;
+ *   ignored for stdio, which speaks over stdin/stdout pipes).
  * @param {string} [config.host='127.0.0.1'] - Informational; see NOTE above.
+ * @param {'stdio'|'http'|'sse'} [config.transport] - Wire protocol.
+ *   Default 'http' (back-compat); 'stdio' maps to mcp-ai's 'cli' entry
+ *   (StdioServerTransport — the passgen mechanism). Env override:
+ *   DICE_MCP_TRANSPORT.
  * @param {(sides: number) => number} [config.rng] - Injected randomness.
  * @returns {object} SimpleServer instance with start/stop methods.
  */
 export function createDiceMcpServer(config = {}) {
+  const transport = config.transport || process.env.DICE_MCP_TRANSPORT || 'http'
+  if (!['stdio', 'http', 'sse'].includes(transport)) {
+    throw new Error(
+      `invalid transport "${transport}" — must be one of stdio, http, sse`,
+    )
+  }
   const port = config.port || 3777
   const host = config.host || '127.0.0.1'
   const tools = getTools({ rng: config.rng })
 
   const serverConfig = {
     name: 'dice-mcp-server',
-    version: '1.0.0',
+    version: '1.1.0',
     server: {
-      connection: { type: 'http', port, host },
+      connection:
+        transport === 'stdio'
+          ? { type: 'cli' }
+          : { type: transport, port, host },
     },
     tools,
   }
 
   const server = createSimpleServer(serverConfig)
 
-  console.info(`[DiceMCP] Server configured on ${host}:${port}`)
-  console.info(`[DiceMCP] ${tools.length} tools registered`)
+  // ALL diagnostics go to stderr: in stdio mode stdout IS the protocol
+  // wire — a single stray log line corrupts the MCP stream.
+  console.error(
+    `[DiceMCP] Server configured (transport: ${transport}${transport === 'stdio' ? '' : `, ${host}:${port}`})`,
+  )
+  console.error(`[DiceMCP] ${tools.length} tools registered`)
 
   return server
 }

@@ -47,7 +47,7 @@ describe('loadConfig', () => {
 
 describe('validateConfig', () => {
   it('accepts a valid config', () => {
-    expect(() => validateConfig({ port: 3777, host: '127.0.0.1' })).not.toThrow()
+    expect(() => validateConfig({ port: 3777, host: '127.0.0.1', transport: 'http' })).not.toThrow()
   })
 
   it('rejects non-integer, low, and high ports', () => {

@@ -21,13 +21,17 @@ import { readFile } from 'fs/promises'
 export const DEFAULTS = Object.freeze({
   port: 3777,
   host: '127.0.0.1',
+  transport: 'http',
 })
+
+/** Transports accepted by createDiceMcpServer ('stdio' maps to SimpleServer 'cli'). */
+export const TRANSPORTS = Object.freeze(['stdio', 'http', 'sse'])
 
 /**
  * Validate merged configuration.
  *
- * @param {{port: number, host: string}} config
- * @throws {Error} On invalid port or host.
+ * @param {{port: number, host: string, transport: string}} config
+ * @throws {Error} On invalid port, host, or transport.
  */
 export function validateConfig(config) {
   if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65535) {
@@ -35,6 +39,11 @@ export function validateConfig(config) {
   }
   if (typeof config.host !== 'string' || config.host === '') {
     throw new Error(`invalid host ${JSON.stringify(config.host)} — must be a non-empty string`)
+  }
+  if (!config.transport || !TRANSPORTS.includes(config.transport)) {
+    throw new Error(
+      `invalid transport ${JSON.stringify(config.transport)} — must be one of ${TRANSPORTS.join(', ')}`,
+    )
   }
 }
 
@@ -67,6 +76,9 @@ export async function loadConfig(env = process.env) {
   }
   if (env.DICE_MCP_HOST !== undefined) {
     config.host = env.DICE_MCP_HOST
+  }
+  if (env.DICE_MCP_TRANSPORT !== undefined) {
+    config.transport = env.DICE_MCP_TRANSPORT
   }
 
   validateConfig(config)
