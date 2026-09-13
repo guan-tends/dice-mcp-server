@@ -35,11 +35,14 @@ describe('rollAndKeep - pool construction', () => {
     expect(r.totals.keptSum).toBe(24) // 9 + 8 + 7
   })
 
-  it('keep count is clamped to pool size (cannot keep more than rolled)', () => {
-    // Trait 5, skill 0, keepBonus 2 => untrained pool 5, keep clamp 5.
+  it('kept > rolled is legal (Report B §5/D2: initiative = Insight k Reflexes); Ten Dice caps at 10', () => {
+    // Trait 5, skill 0, keepBonus 2 => raw 5 rolled, 7 kept. D2: kept >
+    // rolled is legal as declared (initiative shape); Ten Dice caps kept
+    // at 10 — 7 is under the cap, so keepCount = 7.
     const rng = createSequenceRng([3, 4, 5, 6, 7])
     const r = rollAndKeep({ trait: 5, skill: 0, keepBonus: 2, rng })
-    expect(r.keepCount).toBe(5)
+    expect(r.pool).toBe(5)
+    expect(r.keepCount).toBe(7)
   })
 })
 
@@ -79,13 +82,13 @@ describe('rollAndKeep - emphasis', () => {
     expect(r.totals.keptSum).toBe(29)
   })
 
-  it('emphasis applies even when untrained (mechanical choice; reroll, not explosion)', () => {
-    // Untrained + emphasis: rerolls still happen; explosions do not.
-    const rng = createSequenceRng([1, 9, 3])
+  it('emphasis NEVER applies to unskilled rolls (Report B §8/D7: skill mechanic only)', () => {
+    // Unskilled + emphasis: emphasis ignored structurally — no rerolls.
+    const rng = createSequenceRng([1, 3])
     const r = rollAndKeep({ trait: 2, skill: 0, emphasis: true, rng })
     expect(r.untrained).toBe(true)
-    expect(r.rolled[0].rerolled).toBe(true)
-    expect(r.rolled[0].final).toBe(9)
+    expect(r.rolled[0].rerolled).toBe(false)
+    expect(r.rolled[0].final).toBe(1)
   })
 })
 
@@ -158,24 +161,27 @@ describe('rollAndKeep - TN and raises', () => {
 })
 
 describe('rollAndKeep - penalties and totals', () => {
-  it('wound penalty applies once to the final total', () => {
-    // Trait 3 keeps 3: 9+8+7 = 24; penalty -10 => total 14.
+  it('wound penalty is reported but never touches the total (Report B §10/D4)', () => {
+    // Trait 3 keeps 3: 9+8+7 = 24. The penalty is audit-visible in
+    // totals.penalty but the total excludes it (it lives on the TN side).
     const rng = createSequenceRng([9, 8, 7, 6, 5])
-    const r = rollAndKeep({ trait: 3, skill: 2, penalty: -10, rng })
+    const r = rollAndKeep({ trait: 3, skill: 2, penalty: 10, rng })
     expect(r.totals.keptSum).toBe(24)
-    expect(r.totals.penalty).toBe(-10)
-    expect(r.totals.total).toBe(14)
+    expect(r.totals.penalty).toBe(10)
+    expect(r.totals.total).toBe(24)
   })
 
-  it('TN check uses the penalized total', () => {
+  it('penalty raises the effective TN (Report B §10/D4: never the total)', () => {
     // die1: 10->10->4 = 24 (explodes), die2: 9, die3: 8 => kept 41.
-    // TN 35: unpenalized 41 passes; penalty -10 => 31 fails; hook fires
-    // (unraised unpenalized total met the base TN; penalty<0).
+    // TN 35 + penalty 10 => effective TN 45: 41 fails; the hook fires
+    // (keptSum 41 met the base TN 35 — the wound penalty cost the roll).
     // Pool 5 dice: die1 chain (3 values) + 9 + 8 + dice 4,5 (6, 5 — low,
     // dropped; top-3 finals remain 24+9+8 = 41).
     const rng = createSequenceRng([10, 10, 4, 9, 8, 6, 5])
-    const r = rollAndKeep({ trait: 3, skill: 2, tn: 35, penalty: -10, rng })
+    const r = rollAndKeep({ trait: 3, skill: 2, tn: 35, penalty: 10, rng })
     expect(r.totals.keptSum).toBe(41)
+    expect(r.totals.total).toBe(41)
+    expect(r.tn.effective).toBe(45)
     expect(r.success).toBe(false)
     expect(r.wouldSucceedWithoutRaises).toBe(true)
   })
