@@ -297,17 +297,28 @@ export function getTools({ rng = createCryptoRng() } = {}) {
     {
       name: 'l5r5_roll',
       description:
-        'Legend of the Five Rings 5th Edition (FFG) ring-dice check. Rolls Ring rating in d6 ' +
-        'ring dice + Skill rating in d12 skill dice, then keeps Ring-rating many dice ' +
-        '(chosen after seeing the pool). Faces carry symbols: successes, opportunities, ' +
-        'strife, explosive. Explosive faces (ring 6, skill 11/12) add one bonus die of the ' +
-        'same type. TN is successes needed: 1 easy, 2 average, 3 difficult, 4 very hard, ' +
-        '5 extremely hard, 6 extraordinary, 7+ heroic. Advantage converts ring dice to ' +
-        'skill dice (never explosive ones); disadvantage converts the worst skill die to a ' +
-        'ring die. kept="1,3" overrides auto-keep with 1-based pool indices. policy: ' +
-        'success_first (default), min_strife, max_opportunity. composure: advisory ' +
-        'outbursts flag (strife >= composure). Returns the full pool with per-die symbols, ' +
-        'the keeps, and symbol tallies.',
+        'Legend of the Five Rings 5th Edition (FFG) ring-dice check, per the corebook ' +
+        '(pp. 20-26). Rolls Ring rating in d6 ring dice + Skill rank in d12 skill dice ' +
+        '(+ assistance dice), then keeps 1..Ring dice chosen after seeing the pool (book ' +
+        'p. 24: at least one, up to the ring; under-keeping is legal). Faces carry ' +
+        'symbols: successes, opportunities, strife, explosive success. TOTAL SUCCESSES = ' +
+        'success + explosive symbols (p. 24); TN is successes needed: 1 easy, 2 average, ' +
+        '3 difficult, 4 very hard, 5 extremely hard, 6 extraordinary, 7+ heroic. ' +
+        'Explosive symbols on KEPT dice (ring 6, skill 11/12) each roll one bonus die of ' +
+        'the same type AFTER keep selection; bonusDice controls whether they are kept ' +
+        '(auto_keep, default — their symbols count), rolled-then-dropped (auto_drop), or ' +
+        'shown pending for the caller to decide (manual). Kept bonus dice chain. ' +
+        'Advantage/disadvantage are house simplifications of the named advantage ' +
+        'categories (p. 24) and CANCEL each other per the consolidate rule; conversions ' +
+        '("2:skill,4:ring", 1-based base-pool indices) are the book-accurate surface. ' +
+        'assistants: book p. 26 — +1 skill die per skilled helper, +1 ring die per ' +
+        'unskilled helper, keep max +1 per assistant. kept="1,3" overrides auto-keep ' +
+        '(1..keepMax indices). policy: success_first (default), min_strife, ' +
+        'max_opportunity. composure: advisory outbursts flag (strife >= composure). ' +
+        'Result is a full transcript: base pool with per-die symbols, kept/dropped, ' +
+        'bonusDice audit (source/face/symbols/chainDepth/disposition), conversions, ' +
+        'tallies, totalSuccesses, bonusSuccesses/shortfall vs TN, and notes narrating ' +
+        'every automated decision.',
       inputSchema: {
         ring: z
           .number()
@@ -348,12 +359,35 @@ export function getTools({ rng = createCryptoRng() } = {}) {
           .enum(['success_first', 'min_strife', 'max_opportunity'])
           .default('success_first')
           .describe('Auto-keep policy when kept is not provided'),
+        assistants: z
+          .object({
+            skilled: z.number().int().min(0).max(5).optional(),
+            unskilled: z.number().int().min(0).max(5).optional(),
+          })
+          .optional()
+          .describe(
+            'Assistance (book p. 26): skilled = helpers with 1+ ranks in the skill ' +
+              '(+1 skill die each); unskilled = helpers with 0 ranks (+1 ring die each). ' +
+              'Keep max rises +1 per assistant.',
+          ),
+        keepCount: z
+          .number()
+          .int()
+          .min(1)
+          .max(15)
+          .optional()
+          .describe(
+            'Dice to keep when kept is not provided (book p. 24: 1..ring, +1 per ' +
+              'assistant). Default: the maximum. Values above the max are clamped ' +
+              'with a note.',
+          ),
         kept: z
           .string()
           .optional()
           .describe(
-            'Explicit keep override: comma-separated 1-based indices into the base pool, ' +
-              'e.g. "1,3" (exactly ring-rating many; bonus dice not selectable)',
+            'Explicit keep override: comma-separated 1-based indices into the base ' +
+              'pool, e.g. "1,3" (1..keepMax many — under-keeping is legal per book ' +
+              'p. 24; bonus dice are rolled after selection and are not selectable)',
           ),
         composure: z
           .number()
@@ -361,10 +395,23 @@ export function getTools({ rng = createCryptoRng() } = {}) {
           .min(1)
           .optional()
           .describe('Composure value — result flags composureExceeded when kept strife >= it'),
+        bonusDice: z
+          .enum(['auto_keep', 'auto_drop', 'manual'])
+          .optional()
+          .describe(
+            'How explosive bonus dice are handled (book Step 6.1; all modes ROLL ' +
+              'and show them): auto_keep (default) keeps and tallies them; ' +
+              'auto_drop rolls then drops them (shown, not tallied); manual leaves ' +
+              'them pending — the caller decides and applies symbols from the ' +
+              'bonusDice audit array.',
+          ),
         includeExplosionBonuses: z
           .boolean()
-          .default(true)
-          .describe('Expand explosive faces into bonus dice (default true)'),
+          .optional()
+          .describe(
+            'DEPRECATED: use bonusDice instead. true = auto_keep, false = ' +
+              'auto_drop. Cannot be combined with bonusDice.',
+          ),
         label: schemas.label,
       },
       execute: async (input) =>

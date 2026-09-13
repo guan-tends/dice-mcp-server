@@ -608,7 +608,10 @@ export function rollCheck({
   notes.push(
     `Keep: ${kept ? 'explicit override' : `policy ${policy}`} — ${keptIndices.length} of ${baseCount} rolled dice (max ${keepMax}).`,
   )
-  if (bonusPending > 0) {
+  // bonusPending is the MANUAL-mode signal (the caller decides — locked
+  // design #1). auto_drop already decided (disposition 'dropped' in the
+  // audit array); attaching a pending count there would be noise.
+  if (mode === 'manual' && bonusPending > 0) {
     tallies.bonusPending = bonusPending
   }
 
