@@ -198,21 +198,21 @@ dice (Step 5) → resolve symbols on KEPT dice (Step 6).
 - Assistance (p. 26): +1 skill die per skilled helper, +1 ring die per
   unskilled helper.
 
-| Param          | Range        | Default       | Notes                                                                                                              |
-| -------------- | ------------ | ------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `ring`         | 1–5          | required      | also the keep maximum (before assistance)                                                                           |
-| `skill`        | 0–5          | 0             | 0 = untrained (ring dice only)                                                                                      |
-| `tn`           | 1–10         | —             | successes needed: 1 easy · 2 average · 3 difficult · 4 very hard · 5 extremely hard · 6 extraordinary · 7+ heroic    |
-| `assistants`   | object       | —             | `{skilled, unskilled}` (p. 26); keep max +1 per assistant                                                            |
-| `keepCount`    | 1..keepMax   | keepMax       | under-keep via policy (book-legal); values above max clamp with a note                                              |
-| `kept`         | string       | —             | `"1,3"` explicit keep (1-based, 1..keepMax — under-keeping legal)                                                   |
-| `bonusDice`    | enum         | auto_keep     | `auto_keep` (tallied) · `auto_drop` (shown, not tallied) · `manual` (pending — caller decides from the audit array)  |
-| `conversions`  | string       | —             | explicit `"2:skill,4:ring"` (1-based, book-accurate surface; overrides adv/disadv)                                  |
-| `advantage`    | bool         | false         | house simplification of named categories; cancels against `disadvantage` (p. 24)                                    |
-| `disadvantage` | bool         | false         | house simplification; cancels against `advantage`                                                                   |
-| `policy`       | enum         | success_first | `min_strife`, `max_opportunity` (select `keepCount`-many dice)                                                      |
-| `composure`    | int          | —             | advisory `composureExceeded` flag (kept strife ≥ value)                                                             |
-| `label`        | string       | —             | echoed in the result                                                                                                |
+| Param          | Range      | Default       | Notes                                                                                                               |
+| -------------- | ---------- | ------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `ring`         | 1–5        | required      | also the keep maximum (before assistance)                                                                           |
+| `skill`        | 0–5        | 0             | 0 = untrained (ring dice only)                                                                                      |
+| `tn`           | 1–10       | —             | successes needed: 1 easy · 2 average · 3 difficult · 4 very hard · 5 extremely hard · 6 extraordinary · 7+ heroic   |
+| `assistants`   | object     | —             | `{skilled, unskilled}` (p. 26); keep max +1 per assistant                                                           |
+| `keepCount`    | 1..keepMax | keepMax       | under-keep via policy (book-legal); values above max clamp with a note                                              |
+| `kept`         | string     | —             | `"1,3"` explicit keep (1-based, 1..keepMax — under-keeping legal)                                                   |
+| `bonusDice`    | enum       | auto_keep     | `auto_keep` (tallied) · `auto_drop` (shown, not tallied) · `manual` (pending — caller decides from the audit array) |
+| `conversions`  | string     | —             | explicit `"2:skill,4:ring"` (1-based, book-accurate surface; overrides adv/disadv)                                  |
+| `advantage`    | bool       | false         | house simplification of named categories; cancels against `disadvantage` (p. 24)                                    |
+| `disadvantage` | bool       | false         | house simplification; cancels against `advantage`                                                                   |
+| `policy`       | enum       | success_first | `min_strife`, `max_opportunity` (select `keepCount`-many dice)                                                      |
+| `composure`    | int        | —             | advisory `composureExceeded` flag (kept strife ≥ value)                                                             |
+| `label`        | string     | —             | echoed in the result                                                                                                |
 
 Deprecated: `includeExplosionBonuses` (bool) maps to `bonusDice`
 (true → `auto_keep`, false → `auto_drop`); cannot be combined with it.
