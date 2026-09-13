@@ -29,6 +29,53 @@ export const L5R4_POOL_CAP = 10
 /** Each raise increases the effective TN by this much. */
 export const RAISE_TN_STEP = 5
 
+/** Each excess kept die (Ten Dice Rule) adds this flat bonus to the total. */
+export const TEN_DICE_FLAT_BONUS = 2
+
+/**
+ * Ten Dice Rule (4e core, Report B §4) — the signature normalization.
+ * No roll may exceed 10 rolled or 10 kept dice. Excess converts, in order:
+ *   1. KEPT CAP: kept > 10 → kept = 10; each excess KEPT die +2 flat.
+ *   2. ROLLED CAP: rolled > 10 → rolled = 10; excess = raw rolled − 10.
+ *   3. CONVERSION: 2 excess rolled : 1 extra kept, ONLY while kept < 10.
+ *   4. LEFTOVER: every unconverted excess rolled die +2 flat.
+ *
+ * @param {number} rawRolled
+ * @param {number} rawKept
+ * @returns {{rolled: number, kept: number, overflowBonus: number,
+ *   preCap: {rolled: number, kept: number}}}
+ */
+export function applyTenDiceRule(rawRolled, rawKept) {
+  const preCap = { rolled: rawRolled, kept: rawKept }
+  let overflowBonus = 0
+
+  // 1. KEPT CAP
+  let kept = rawKept
+  if (kept > L5R4_POOL_CAP) {
+    overflowBonus += (kept - L5R4_POOL_CAP) * TEN_DICE_FLAT_BONUS
+    kept = L5R4_POOL_CAP
+  }
+
+  // 2. ROLLED CAP
+  let rolled = rawRolled
+  let excessRolled = 0
+  if (rolled > L5R4_POOL_CAP) {
+    excessRolled = rolled - L5R4_POOL_CAP
+    rolled = L5R4_POOL_CAP
+  }
+
+  // 3. CONVERSION — 2 excess rolled → 1 kept, only while kept < 10.
+  while (excessRolled >= 2 && kept < L5R4_POOL_CAP) {
+    excessRolled -= 2
+    kept += 1
+  }
+
+  // 4. LEFTOVER — unconvertible excess rolled dice flat +2 each.
+  overflowBonus += excessRolled * TEN_DICE_FLAT_BONUS
+
+  return { rolled, kept, overflowBonus, preCap }
+}
+
 /**
  * Validate rollAndKeep parameters.
  *
@@ -139,12 +186,15 @@ export function rollAndKeep({
   const untrained = skill === 0
   const declaredRaises = untrained ? 0 : raises
 
-  // Pool: trait + skill (+ bonus dice), capped at 10 rolled dice.
-  const rawPool = trait + skill + rollBonus
-  const pool = Math.min(rawPool, L5R4_POOL_CAP)
+  // Raw pools BEFORE the Ten Dice Rule (audit-visible).
+  const rawRolled = trait + skill + rollBonus
+  const rawKept = trait + keepBonus
 
-  // Keep: trait (+ bonus), clamped to [1, pool].
-  const keepCount = Math.max(1, Math.min(trait + keepBonus, pool))
+  // Ten Dice Rule normalization (kept-cap → rolled-cap → 2:1 → leftover).
+  const normalized = applyTenDiceRule(rawRolled, rawKept)
+  const pool = normalized.rolled
+  const keepCount = Math.max(1, Math.min(normalized.kept, pool))
+  const overflowBonus = normalized.overflowBonus
 
   const rolled = rollDice({
     sides: 10,
@@ -165,7 +215,7 @@ export function rollAndKeep({
   const dropped = indexed.slice(keepCount).map((x) => x.die)
 
   const keptSum = kept.reduce((s, d) => s + d.final, 0)
-  const total = keptSum + penalty
+  const total = keptSum + overflowBonus + penalty
 
   const effectiveTn = tn !== undefined && tn !== null ? tn + declaredRaises * RAISE_TN_STEP : null
   const success = effectiveTn !== null ? total >= effectiveTn : undefined
@@ -192,7 +242,9 @@ export function rollAndKeep({
     dropped,
     keepCount,
     untrained,
-    totals: { keptSum, penalty, total },
+    overflowBonus,
+    preCapPool: normalized.preCap,
+    totals: { keptSum, overflowBonus, penalty, total },
     tn: { base: tn, raises: declaredRaises, effective: effectiveTn },
     raises: {
       declared: declaredRaises,
