@@ -357,7 +357,11 @@ describe('E2E: l5r5 manual mode over the wire (v1.4.0)', () => {
     await localServer.start()
     await new Promise((resolve) => setTimeout(resolve, 400))
     const c = new Client({ name: 'test-client', version: '1.0.0' })
-    await c.connect(new StreamableHTTPClientTransport(new URL(TEST_URL.replace(String(TEST_PORT), String(TEST_PORT + 3)))))
+    await c.connect(
+      new StreamableHTTPClientTransport(
+        new URL(TEST_URL.replace(String(TEST_PORT), String(TEST_PORT + 3))),
+      ),
+    )
     try {
       const result = await c.callTool({
         name: 'l5r5_roll',
