@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] — 2026-09-13
+
+### Fixed
+- **serverInfo.version single source of truth**: the MCP `initialize`
+  response now derives its version from `package.json` (via
+  `createRequire`) instead of a hand-synced literal — v1.2.0 shipped
+  with the server announcing "1.1.0" because the literal was never
+  bumped. This class of drift can no longer occur.
+
 ## [1.2.0] — 2026-09-13
 
 ### L5R 4e engine — full table-law conformance (community field report, D1–D8)

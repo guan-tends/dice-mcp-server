@@ -16,6 +16,7 @@
  * @module mcp-server
  */
 
+import { createRequire } from 'node:module'
 import { createSimpleServer } from '@guan-tends/mcp-ai/simple-server/index.js'
 import { z } from 'zod'
 import { evaluateExpression } from './engine/d20.js'
@@ -393,7 +394,8 @@ export function createDiceMcpServer(config = {}) {
 
   const serverConfig = {
     name: 'dice-mcp-server',
-    version: '1.1.0',
+    // Single source of truth: package.json version (never hand-synced).
+    version: createRequire(import.meta.url)('../package.json').version,
     server: {
       connection: transport === 'stdio' ? { type: 'cli' } : { type: transport, port, host },
     },
