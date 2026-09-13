@@ -204,3 +204,39 @@ describe('validation paths (deep-review test gap)', () => {
     expect(r.notes.some((n) => /Emphasis/.test(n))).toBe(false)
   })
 })
+
+describe('GM feedback lap (v1.3.0) — RED first', () => {
+  it('voidRing NEVER touches the pool — raise-cap only (no mimic trap)', () => {
+    // trait 3 + skill 2 = 5 dice, all face 5 (no explosions): 5 values/roll.
+    const rng = createSequenceRng([5, 5, 5, 5, 5])
+    const withRing = rollAndKeep({ trait: 3, skill: 2, voidRing: 1, rng })
+    const rng2 = createSequenceRng([5, 5, 5, 5, 5])
+    const without = rollAndKeep({ trait: 3, skill: 2, rng: rng2 })
+    expect(withRing.preCapPool).toEqual(without.preCapPool)
+    expect(withRing.pool).toBe(without.pool)
+    expect(withRing.keepCount).toBe(without.keepCount)
+  })
+
+  it('voidRing still caps declared raises (law-citing error preserved)', () => {
+    expect(() => rollAndKeep({ trait: 3, skill: 2, raises: 2, voidRing: 1, rng: () => 5 })).toThrow(
+      /exceed the Void Ring/,
+    )
+  })
+
+  it('explodeOn accepts a bare number (coercion-proof at engine layer)', () => {
+    // Mastery face 9: a 9 explodes, a 5 does not.
+    const rng = createSequenceRng([9, 5, 5])
+    const r = rollAndKeep({ trait: 1, skill: 1, explodeOn: 9, rng })
+    // chain = explosion LEDGER incl. the initial face (core.js contract);
+    // final = sum of the ledger: 9 + 5 = 14.
+    expect(r.rolled[0].final).toBe(14)
+    expect(r.rolled[0].chain).toEqual([9, 5])
+  })
+
+  it('explodeOn accepts a number array', () => {
+    const rng = createSequenceRng([10, 9, 7, 5, 5])
+    const r = rollAndKeep({ trait: 1, skill: 2, explodeOn: [9, 10], rng })
+    // 10 explodes (face in list) -> next 9 explodes -> final = 10+9+7 = 26
+    expect(r.rolled[0].final).toBe(26)
+  })
+})
