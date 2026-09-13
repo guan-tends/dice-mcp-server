@@ -64,6 +64,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+http://localhost:8561/guan/dice-mcp-server.git"
+    "url": "git+https://github.com/guan-tends/dice-mcp-server.git"
   }
 }
