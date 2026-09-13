@@ -1,22 +1,39 @@
 /**
- * L5R 4th Edition Roll & Keep engine (AEG).
+ * L5R 4th Edition Roll & Keep engine (AEG) — table-law conformance v1.2.
  *
- * The XkY+Z pool system: roll (Trait + Skill) d10s, keep the highest
- * Trait of them, sum. D10s explode on 10s (trained rolls only).
+ * The XkY+Z pool system: roll d10s, keep the highest Y of them, sum,
+ * meet-or-beat the TN. Spec source: the campaign table-law digest
+ * (Report B), verified against the 4e core mechanics primer.
  *
- * Rules implemented (verified against the 4e core mechanics primer):
- *   - Pool = Trait + Skill, capped at 10 rolled dice (4e pool cap).
- *   - Keep = Trait + keepBonus, clamped to [1, pool].
- *   - Untrained (skill 0): pool = Trait, keep ALL, NO explosions, NO raises.
- *   - Emphasis: reroll initial 1s once, BEFORE explosion checks. Applies
- *     even to untrained rolls (a reroll is not an explosion).
- *   - Raises: each declared raise adds +5 to the effective TN; declared
- *     raises must not exceed the Void Ring (when provided). Free raises
- *     add effect without TN increase and never count against the cap.
- *   - Wound/stance penalty applies ONCE to the final total.
- *   - wouldSucceedWithoutRaises: narration hook — true when the unraised
- *     (and unpenalized) total would have met the base TN but the effective
- *     TN failed. Covers both "failed raises" and "penalty cost me the roll".
+ * Rules implemented (Report B section references inline):
+ *   - Direct pool input: rolled/kept override trait/skill construction.
+ *     kept > rolled is legal (initiative = Insight k Reflexes, 1k4).
+ *   - Ten Dice Rule (§4): kept-cap first (+2 per excess kept die), then
+ *     rolled-cap, then 2:1 rolled→kept conversion ONLY while kept < 10,
+ *     then +2 flat per leftover rolled die. See applyTenDiceRule.
+ *   - Roll classification (§5/§9, D3): rollType skill|trait|ring|
+ *     unskilled|custom. Trait/ring rolls explode and allow raises;
+ *     unskilled rolls never explode, never raise. Back-compat: skill 0
+ *     with no rollType/untrained flag still infers unskilled.
+ *   - Emphasis (§8, D7): reroll initial 1s once, BEFORE explosion checks.
+ *     A trained-skill mechanic — structurally suppressed on unskilled rolls.
+ *   - Raises (§6): +5 effective TN each, capped by Void Ring when provided;
+ *     free raises add effect without TN and never count against the cap.
+ *   - Wound/stance penalties (§10, D4): RAISE the effective TN — they
+ *     never touch the roll total (reported in totals for the audit trail).
+ *   - Dice penalties (§10, D5): negative rollBonus/keepBonus subtract
+ *     dice; after subtraction kept clamps to rolled (6k4 under -3k0 → 3k3).
+ *     Base pools are never clamped (initiative 1k4 is legal as declared).
+ *   - Void Point (§7, D6): voidPoint=true adds +1k1 (voidRing remains the
+ *     raise-cap rating).
+ *   - Explosion policy (§3): explodeOn faces — default [10]; mastery may
+ *     widen (9); thrown weapons disable ('none').
+ *   - totalBonus (§11): flat bonus to the kept sum (Honor on Fear rolls),
+ *     distinct from dice bonuses.
+ *   - keepMode (§1, D8): 'highest' default; 'lowest' = deliberate failure.
+ *   - wouldSucceedWithoutRaises: narration hook — true when the unraised,
+ *     unpenalized total would have met the base TN but the effective TN
+ *     failed. Covers failed raises AND "the wound penalty cost me the roll".
  *
  * @module engine/l5r4
  */
@@ -76,14 +93,15 @@ export function applyTenDiceRule(rawRolled, rawKept) {
   return { rolled, kept, overflowBonus, preCap }
 }
 
+/** Valid rollType classifications (D3/§5/§9). */
+const ROLL_TYPES = ['skill', 'trait', 'ring', 'unskilled', 'custom']
+
 /**
  * Validate rollAndKeep parameters.
  *
  * @param {object} p - See rollAndKeep.
- * @throws {Error} On invalid parameters.
+ * @throws {Error} On invalid parameters or rule violations.
  */
-const ROLL_TYPES = ['skill', 'trait', 'ring', 'unskilled', 'custom']
-
 function validate(p) {
   const { trait, skill, raises, freeRaises, voidRing, rolled, kept, rollType, keepMode } = p
   const hasDirectPool = rolled !== undefined && rolled !== null
@@ -170,24 +188,54 @@ function buildNotes({ untrained, emphasis, explodedCount, rerolledCount, raises,
 /**
  * Roll an L5R 4e Roll & Keep check.
  *
+ * Pool construction: EITHER trait/skill (skill roll: (Trait+Skill)kTrait)
+ * OR direct rolled/kept (initiative 1k4, damage 6k2, Honor 6k6, spell
+ * casting 3k2 — §5). The Ten Dice Rule (§4) normalizes every pool.
+ *
  * @param {object} params
- * @param {number} params.trait - Trait rating 1..10 (also the keep count).
- * @param {number} params.skill - Skill rating 0..10. 0 = untrained.
+ * @param {number} [params.trait] - Trait rating 1..10 (the default keep
+ *   count for skill rolls). Required unless rolled/kept direct pool given.
+ * @param {number} [params.skill] - Skill rating 0..10. With no rollType
+ *   and no untrained flag, 0 infers unskilled (back-compat).
+ * @param {number} [params.rolled] - Direct pool: dice to roll (overrides
+ *   trait/skill). Initiative 1k4, damage 6k2, Honor 6k6.
+ * @param {number} [params.kept] - Direct pool: dice to keep. kept > rolled
+ *   is legal (§5); capped at 10 by the Ten Dice Rule.
  * @param {(sides: number) => number} params.rng - Injected randomness.
- * @param {number} [params.tn] - Target number. When present, the result
- *   includes success/failure against the effective TN.
- * @param {number} [params.raises=0] - Declared raises (+5 TN each, capped by voidRing).
- * @param {number} [params.freeRaises=0] - Free raises (effect only, no TN, no cap).
- * @param {number} [params.voidRing] - Void Ring rating; caps declared raises.
- * @param {boolean} [params.emphasis=false] - Skill emphasis applies (reroll 1s once).
- * @param {number} [params.penalty=0] - Wound/stance penalty applied once to the total.
- * @param {number} [params.rollBonus=0] - Extra rolled dice (e.g. Void +1k1).
- * @param {number} [params.keepBonus=0] - Extra kept dice (e.g. Void +1k1).
- * @param {string} [params.label] - Optional caller label echoed in the result.
- * @returns {object} Full roll result: pool, rolled, kept, dropped, keepCount,
- *   totals {keptSum, penalty, total}, tn {base, raises, effective},
- *   raises {declared, free, totalEffects}, success?, wouldSucceedWithoutRaises?,
- *   untrained, notes[], label?.
+ * @param {number} [params.tn] - Target number (5 trivial .. 60 impossible).
+ * @param {number} [params.raises=0] - Declared raises (+5 effective TN
+ *   each, capped by voidRing when provided).
+ * @param {number} [params.freeRaises=0] - Free raises: effect only, no TN,
+ *   not counted against the cap (§6).
+ * @param {number} [params.voidRing] - Void Ring rating; caps declared
+ *   raises when provided (§6).
+ * @param {boolean} [params.voidPoint=false] - Spend a Void Point: +1k1 to
+ *   the pool (§7, D6).
+ * @param {boolean} [params.emphasis=false] - Skill emphasis: reroll initial
+ *   1s once before explosions (§8). Never applies to unskilled rolls (D7).
+ * @param {string} [params.rollType] - 'skill' | 'trait' | 'ring' |
+ *   'unskilled' | 'custom'. Trait/ring/custom explode + allow raises;
+ *   unskilled does neither (D3/§5/§9).
+ * @param {boolean} [params.untrained] - Explicit untrained flag; false
+ *   with skill 0 = Trait roll (explodes, raises legal).
+ * @param {number} [params.penalty=0] - Wound/stance penalty: RAISES the
+ *   effective TN (Nicked +3 .. Down +40); never touches the total (§10, D4).
+ * @param {number} [params.rollBonus=0] - Extra (+) or penalty (−) rolled
+ *   dice; dice penalties clamp kept ≤ rolled after subtraction (§10, D5).
+ * @param {number} [params.keepBonus=0] - Extra (+) or penalty (−) kept dice.
+ * @param {number} [params.totalBonus=0] - Flat bonus to the kept sum
+ *   (Honor Rank on Fear resistance, §11) — distinct from dice bonuses.
+ * @param {string} [params.keepMode='highest'] - 'highest' (default) or
+ *   'lowest' (deliberate failure, §1, D8).
+ * @param {number|number[]|'none'} [params.explodeOn] - Explosion faces:
+ *   default 10; mastery 9; comma-list [9,10]; 'none' disables (§3).
+ * @param {string} [params.label] - Optional caller label echoed in result.
+ * @returns {object} Full roll result: label, pool, rolled (die objects:
+ *   face/chain/final/rerolled), kept, dropped, keepCount, untrained,
+ *   overflowBonus, preCapPool {rolled, kept}, rollType, keepMode,
+ *   totals {keptSum, overflowBonus, totalBonus, penalty, total},
+ *   tn {base, raises, effective}, raises {declared, free, totalEffects},
+ *   notes[], success?, wouldSucceedWithoutRaises?.
  * @throws {Error} On invalid parameters or rule violations.
  */
 export function rollAndKeep({
@@ -346,7 +394,7 @@ export function rollAndKeep({
     },
     notes: buildNotes({
       untrained,
-      emphasis,
+      emphasis: appliedEmphasis,
       explodedCount,
       rerolledCount,
       raises: declaredRaises,
