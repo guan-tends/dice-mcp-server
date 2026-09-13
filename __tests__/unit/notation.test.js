@@ -123,4 +123,13 @@ describe('parseExpression - whitespace and validation', () => {
   it('rejects oversized constants', () => {
     expect(() => parseExpression('1d6+99999999')).toThrow(/constant/)
   })
+
+  it('rejects doubled sign operators (silent-skip guard)', () => {
+    // '2d6--3' previously parsed as 2d6 + (-3) with the first '-' silently
+    // dropped by the segment regex. Ambiguous input must be rejected.
+    expect(() => parseExpression('2d6--3')).toThrow(/sign/)
+    expect(() => parseExpression('2d6++3')).toThrow(/sign/)
+    expect(() => parseExpression('2d6+-3')).toThrow(/sign/)
+    expect(() => parseExpression('2d6-+3')).toThrow(/sign/)
+  })
 })

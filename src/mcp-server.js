@@ -28,19 +28,19 @@ import { createCryptoRng } from './engine/rng.js'
 // ──────────────────────────────────────────────────────────────────────────
 
 /**
- * Wrap an async tool handler with standardized error handling.
+ * Run an async tool body with standardized error handling: engine throws
+ * become isError MCP results carrying the engine's human-readable message.
+ * (Zod-schema violations never reach here — the SDK rejects them earlier.)
  *
  * @param {Function} fn - Async function returning an MCP result object.
- * @returns {Function} Wrapped async function with error handling.
+ * @returns {Promise<object>} The tool result, or an isError result on throw.
  */
 async function withErrorHandling(fn) {
   try {
     return await fn()
   } catch (error) {
     return {
-      content: [
-        { type: 'text', text: JSON.stringify({ success: false, error: error.message }) },
-      ],
+      content: [{ type: 'text', text: JSON.stringify({ success: false, error: error.message }) }],
       isError: true,
     }
   }
@@ -63,7 +63,10 @@ function success(data) {
 // ──────────────────────────────────────────────────────────────────────────
 
 const schemas = {
-  label: z.string().optional().describe('Optional label echoed in the result (e.g. "Katana attack")'),
+  label: z
+    .string()
+    .optional()
+    .describe('Optional label echoed in the result (e.g. "Katana attack")'),
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -90,14 +93,14 @@ export function getTools({ rng = createCryptoRng() } = {}) {
         'Roll dice using standard tabletop notation. Syntax: "2d6+3" (sum), "4d6kh3" (keep ' +
         'highest 3 — ability scores), "2d20kl1" (disadvantage), "1d10!" (exploding on max, ' +
         'reroll-and-sum chains), "1d12!11,12" (explode on specific faces), "3d6r1" (reroll ' +
-        "initial 1s once), multi-term like \"2d6+1d4+2\". Add dc to get a success verdict " +
+        'initial 1s once), multi-term like "2d6+1d4+2". Add dc to get a success verdict ' +
         '(total >= dc). Returns per-term rolls, kept/dropped dice, and the total. Stateless ' +
         'pure math — no character sheets.',
       inputSchema: {
         expression: z
           .string()
           .describe(
-            'Dice expression, e.g. "2d6+3", "4d6kh3", "2d20kl1", "1d10!", "1d12!11,12", "3d6r1"'
+            'Dice expression, e.g. "2d6+3", "4d6kh3", "2d20kl1", "1d10!", "1d12!11,12", "3d6r1"',
           ),
         dc: z.number().int().optional().describe('Optional difficulty class / target number'),
       },
@@ -120,7 +123,12 @@ export function getTools({ rng = createCryptoRng() } = {}) {
         'trivial, 10 easy, 15 average, 20 difficult, 25 very hard, 30 extreme, 40 ' +
         'near-impossible. Void Point = +1k1: pass rollBonus=1 and keepBonus=1.',
       inputSchema: {
-        trait: z.number().int().min(1).max(10).describe('Trait ring rating 1-10 (also the keep count)'),
+        trait: z
+          .number()
+          .int()
+          .min(1)
+          .max(10)
+          .describe('Trait ring rating 1-10 (also the keep count)'),
         skill: z
           .number()
           .int()
@@ -231,7 +239,7 @@ export function getTools({ rng = createCryptoRng() } = {}) {
           .optional()
           .describe(
             'Explicit die conversions, 1-based base-pool indices: "2:skill,4:ring". ' +
-              'Overrides advantage/disadvantage defaults'
+              'Overrides advantage/disadvantage defaults',
           ),
         policy: z
           .enum(['success_first', 'min_strife', 'max_opportunity'])
@@ -242,7 +250,7 @@ export function getTools({ rng = createCryptoRng() } = {}) {
           .optional()
           .describe(
             'Explicit keep override: comma-separated 1-based indices into the base pool, ' +
-              'e.g. "1,3" (exactly ring-rating many; bonus dice not selectable)'
+              'e.g. "1,3" (exactly ring-rating many; bonus dice not selectable)',
           ),
         composure: z
           .number()
@@ -272,10 +280,15 @@ export function getTools({ rng = createCryptoRng() } = {}) {
 /**
  * Create the Dice MCP Server.
  *
+ * NOTE: `host` is INFORMATIONAL ONLY — mcp-ai SimpleServer's express
+ * listen() binds all interfaces and ignores it (verified: app.listen(port),
+ * no host arg). Loopback-only enforcement happens at the deployment layer:
+ * systemd IPAddressDeny=any + IPAddressAllow=localhost, plus UFW
+ * default-deny. See README "Loopback enforcement".
+ *
  * @param {object} [config]
- * @param {number} [config.port=3777] - HTTP server port.
- * @param {string} [config.host='127.0.0.1'] - Bind address (loopback default:
- *   the mcp-ai aggregator runs on the same host; no LAN exposure).
+ * @param {number} [config.port=3777] - HTTP server port (this IS honored).
+ * @param {string} [config.host='127.0.0.1'] - Informational; see NOTE above.
  * @param {(sides: number) => number} [config.rng] - Injected randomness.
  * @returns {object} SimpleServer instance with start/stop methods.
  */

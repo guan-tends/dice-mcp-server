@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { RING_D6, SKILL_D12, resolveDie, EMPTY_SYMBOLS, sumSymbols } from '../../src/engine/symbols.js'
+import {
+  RING_D6,
+  SKILL_D12,
+  resolveDie,
+  EMPTY_SYMBOLS,
+  sumSymbols,
+} from '../../src/engine/symbols.js'
 
 describe('RING_D6 — verified face table', () => {
   it('maps all 6 faces exactly per the verified 5e chart', () => {
@@ -35,11 +41,21 @@ describe('SKILL_D12 — verified face table', () => {
 
 describe('resolveDie', () => {
   it('resolves a ring die face', () => {
-    expect(resolveDie('ring', 6)).toEqual({ successes: 1, opportunities: 0, strife: 1, explosive: true })
+    expect(resolveDie('ring', 6)).toEqual({
+      successes: 1,
+      opportunities: 0,
+      strife: 1,
+      explosive: true,
+    })
   })
 
   it('resolves a skill die face', () => {
-    expect(resolveDie('skill', 12)).toEqual({ successes: 0, opportunities: 0, strife: 0, explosive: true })
+    expect(resolveDie('skill', 12)).toEqual({
+      successes: 0,
+      opportunities: 0,
+      strife: 0,
+      explosive: true,
+    })
   })
 
   it('rejects unknown die types and out-of-range faces', () => {

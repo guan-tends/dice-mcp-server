@@ -62,9 +62,10 @@ function renderNotation(term) {
   let text = `${term.count === 1 ? '' : term.count}d${term.sides}`
   if (term.keep) text += `${term.keep.mode === 'highest' ? 'kh' : 'kl'}${term.keep.n}`
   if (term.explodeOn) {
-    text += term.explodeOn.length === 1 && term.explodeOn[0] === term.sides
-      ? '!'
-      : `!${term.explodeOn.join(',')}`
+    text +=
+      term.explodeOn.length === 1 && term.explodeOn[0] === term.sides
+        ? '!'
+        : `!${term.explodeOn.join(',')}`
   }
   if (term.rerollBelow !== null && term.rerollBelow !== undefined) text += `r${term.rerollBelow}`
   return text

@@ -60,13 +60,13 @@ function validate(p) {
     if (raises > voidRing) {
       throw new Error(
         `rollAndKeep: ${raises} raises exceed the Void Ring of ${voidRing} — ` +
-          `a character may not raise more times than their Void Ring on a single roll`
+          `a character may not raise more times than their Void Ring on a single roll`,
       )
     }
   }
   if (skill === 0 && raises > 0) {
     throw new Error(
-      'rollAndKeep: untrained rolls (skill 0) cannot benefit from Raises — remove raises or train the skill'
+      'rollAndKeep: untrained rolls (skill 0) cannot benefit from Raises — remove raises or train the skill',
     )
   }
 }
@@ -158,7 +158,9 @@ export function rollAndKeep({
 
   // Keep the highest finals (explosion sums included). Ties: earlier roll wins.
   const indexed = rolled.map((die, index) => ({ die, index }))
-  indexed.sort((a, b) => (b.die.final !== a.die.final ? b.die.final - a.die.final : a.index - b.index))
+  indexed.sort((a, b) =>
+    b.die.final !== a.die.final ? b.die.final - a.die.final : a.index - b.index,
+  )
   const kept = indexed.slice(0, keepCount).map((x) => x.die)
   const dropped = indexed.slice(keepCount).map((x) => x.die)
 
@@ -192,7 +194,11 @@ export function rollAndKeep({
     untrained,
     totals: { keptSum, penalty, total },
     tn: { base: tn, raises: declaredRaises, effective: effectiveTn },
-    raises: { declared: declaredRaises, free: freeRaises, totalEffects: declaredRaises + freeRaises },
+    raises: {
+      declared: declaredRaises,
+      free: freeRaises,
+      totalEffects: declaredRaises + freeRaises,
+    },
     notes: buildNotes({
       untrained,
       emphasis,

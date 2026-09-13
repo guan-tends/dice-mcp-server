@@ -69,7 +69,7 @@ describe('l5r4_roll tool', () => {
     const result = await runTool(
       'l5r4_roll',
       { trait: 3, skill: 2, tn: 15, raises: 2, label: 'Court maneuver' },
-      [9, 8, 7, 6, 5]
+      [9, 8, 7, 6, 5],
     )
     const parsed = JSON.parse(result.content[0].text)
     expect(parsed.success).toBe(false)
@@ -80,11 +80,7 @@ describe('l5r4_roll tool', () => {
   })
 
   it('rejects void-capped raises via isError', async () => {
-    const result = await runTool(
-      'l5r4_roll',
-      { trait: 3, skill: 2, raises: 3, voidRing: 2 },
-      []
-    )
+    const result = await runTool('l5r4_roll', { trait: 3, skill: 2, raises: 3, voidRing: 2 }, [])
     expect(result.isError).toBe(true)
     const parsed = JSON.parse(result.content[0].text)
     expect(parsed.error).toMatch(/void/i)
@@ -97,7 +93,7 @@ describe('l5r5_roll tool', () => {
     const result = await runTool(
       'l5r5_roll',
       { ring: 2, skill: 2, tn: 2, label: 'Attack' },
-      [2, 5, 9, 10]
+      [2, 5, 9, 10],
     )
     const parsed = JSON.parse(result.content[0].text)
     expect(parsed.success).toBe(true)
@@ -111,7 +107,7 @@ describe('l5r5_roll tool', () => {
     const result = await runTool(
       'l5r5_roll',
       { ring: 2, skill: 2, kept: '1,2' },
-      [4, 6, 8, 12, 2, 10]
+      [4, 6, 8, 12, 2, 10],
     )
     const parsed = JSON.parse(result.content[0].text)
     expect(parsed.keptIndices).toEqual([1, 2])

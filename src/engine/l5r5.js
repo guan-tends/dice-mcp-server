@@ -51,13 +51,11 @@ function validate(p) {
     throw new Error(`rollCheck: tn must be an integer in 1..10 (got ${tn})`)
   }
   if (policy !== undefined && !POLICIES.has(policy)) {
-    throw new Error(
-      `rollCheck: policy must be one of ${[...POLICIES].join(', ')} (got ${policy})`
-    )
+    throw new Error(`rollCheck: policy must be one of ${[...POLICIES].join(', ')} (got ${policy})`)
   }
   if (advantage && disadvantage) {
     throw new Error(
-      'rollCheck: advantage and disadvantage are mutually exclusive on a single check'
+      'rollCheck: advantage and disadvantage are mutually exclusive on a single check',
     )
   }
   if (
@@ -165,14 +163,14 @@ function applyConversions(pool, { advantage, disadvantage, conversions, rng }) {
       const m = spec.trim().match(/^(\d+):(ring|skill)$/i)
       if (!m) {
         throw new Error(
-          `rollCheck: conversions must be "index:ring" or "index:skill" comma-separated (got "${spec}")`
+          `rollCheck: conversions must be "index:ring" or "index:skill" comma-separated (got "${spec}")`,
         )
       }
       const idx = parseInt(m[1], 10) - 1
       const die = pool[idx]
       if (!die || die.bonusFor !== undefined) {
         throw new Error(
-          `rollCheck: conversion index ${m[1]} does not reference a base-pool die (bonus dice are not selectable)`
+          `rollCheck: conversion index ${m[1]} does not reference a base-pool die (bonus dice are not selectable)`,
         )
       }
       convert(die, m[2].toLowerCase())
@@ -215,17 +213,15 @@ function selectKept(pool, baseCount, keepCount, { policy = 'success_first', kept
   const base = pool.slice(0, baseCount)
 
   if (kept !== undefined && kept !== null) {
-    const indices = kept
-      .split(',')
-      .map((s) => parseInt(s.trim(), 10))
+    const indices = kept.split(',').map((s) => parseInt(s.trim(), 10))
     if (indices.some((i) => !Number.isInteger(i) || i < 1 || i > baseCount)) {
       throw new Error(
-        `rollCheck: kept indices must be 1-based indexes into the base pool (1..${baseCount}), got "${kept}"`
+        `rollCheck: kept indices must be 1-based indexes into the base pool (1..${baseCount}), got "${kept}"`,
       )
     }
     if (indices.length !== keepCount) {
       throw new Error(
-        `rollCheck: kept must keep exactly ${keepCount} dice (ring rating), got ${indices.length}`
+        `rollCheck: kept must keep exactly ${keepCount} dice (ring rating), got ${indices.length}`,
       )
     }
     if (new Set(indices).size !== indices.length) {

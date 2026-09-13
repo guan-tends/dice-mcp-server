@@ -115,6 +115,6 @@ export function sumSymbols(sets) {
       strife: acc.strife + s.strife,
       explosive: acc.explosive + (s.explosive ? 1 : 0),
     }),
-    { successes: 0, opportunities: 0, strife: 0, explosive: 0 }
+    { successes: 0, opportunities: 0, strife: 0, explosive: 0 },
   )
 }

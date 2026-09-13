@@ -34,13 +34,13 @@ function validateParams({ sides, count, explodeOn, rerollBelow }) {
   }
   if (!Number.isInteger(count) || count < 0 || count > MAX_DICE_PER_ROLL) {
     throw new Error(
-      `rollDice: count must be an integer between 0 and ${MAX_DICE_PER_ROLL} (got ${count})`
+      `rollDice: count must be an integer between 0 and ${MAX_DICE_PER_ROLL} (got ${count})`,
     )
   }
   if (rerollBelow !== undefined && rerollBelow !== null) {
     if (!Number.isInteger(rerollBelow) || rerollBelow < 1 || rerollBelow >= sides) {
       throw new Error(
-        `rollDice: rerollBelow must be an integer in [1, ${sides - 1}] (got ${rerollBelow})`
+        `rollDice: rerollBelow must be an integer in [1, ${sides - 1}] (got ${rerollBelow})`,
       )
     }
   }
@@ -51,7 +51,7 @@ function validateParams({ sides, count, explodeOn, rerollBelow }) {
       !explodeOn.every((f) => Number.isInteger(f) && f >= 1 && f <= sides)
     ) {
       throw new Error(
-        `rollDice: explodeOn must be a non-empty array of integers in [1, ${sides}] (got ${JSON.stringify(explodeOn)})`
+        `rollDice: explodeOn must be a non-empty array of integers in [1, ${sides}] (got ${JSON.stringify(explodeOn)})`,
       )
     }
   }

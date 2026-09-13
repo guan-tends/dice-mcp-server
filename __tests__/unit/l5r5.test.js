@@ -114,10 +114,10 @@ describe('rollCheck - keep selection', () => {
 
   it('kept override validates: wrong count, out of range, bonus index', () => {
     expect(() =>
-      rollCheck({ ring: 2, skill: 2, rng: createSequenceRng([4, 5, 8, 9]), kept: '1' })
+      rollCheck({ ring: 2, skill: 2, rng: createSequenceRng([4, 5, 8, 9]), kept: '1' }),
     ).toThrow(/keep/)
     expect(() =>
-      rollCheck({ ring: 2, skill: 2, rng: createSequenceRng([4, 5, 8, 9]), kept: '0,9' })
+      rollCheck({ ring: 2, skill: 2, rng: createSequenceRng([4, 5, 8, 9]), kept: '0,9' }),
     ).toThrow(/index/)
     // Bonus dice land after base pool; index 99 out of range anyway.
   })
@@ -145,7 +145,13 @@ describe('rollCheck - advantage / disadvantage', () => {
     const rng = createSequenceRng([2, 6, 8, 5, 9])
     const r = rollCheck({ ring: 2, skill: 1, rng, advantage: true })
     expect(r.conversions).toHaveLength(1)
-    expect(r.conversions[0]).toMatchObject({ index: 1, from: 'ring', to: 'skill', oldFace: 2, newFace: 9 })
+    expect(r.conversions[0]).toMatchObject({
+      index: 1,
+      from: 'ring',
+      to: 'skill',
+      oldFace: 2,
+      newFace: 9,
+    })
   })
 
   it('disadvantage converts skill dice to ring dice (suboptimal, by rule)', () => {
@@ -224,9 +230,9 @@ describe('rollCheck - validation', () => {
 
   it('rejects advantage AND disadvantage together', () => {
     const rng = createSequenceRng([3])
-    expect(() => rollCheck({ ring: 1, skill: 0, rng, advantage: true, disadvantage: true })).toThrow(
-      /advantage/
-    )
+    expect(() =>
+      rollCheck({ ring: 1, skill: 0, rng, advantage: true, disadvantage: true }),
+    ).toThrow(/advantage/)
   })
 
   it('rejects tn outside 1..10', () => {

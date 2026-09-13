@@ -27,7 +27,7 @@ function validateQueuedValue(value, index, declaredSides) {
   if (!Number.isInteger(value) || value < 1 || value > upper) {
     const range = declaredSides ? `1..${declaredSides}` : 'positive integers'
     throw new Error(
-      `createSequenceRng: queued value ${value} at position ${index} is out of range (${range})`
+      `createSequenceRng: queued value ${value} at position ${index} is out of range (${range})`,
     )
   }
 }
@@ -52,14 +52,14 @@ export function createSequenceRng(values, sides = null) {
     if (position >= values.length) {
       throw new Error(
         `createSequenceRng: sequence exhausted at position ${position} ` +
-          `(queued ${values.length} values; call rng(${rollSides}) requested more)`
+          `(queued ${values.length} values; call rng(${rollSides}) requested more)`,
       )
     }
     const value = values[position++]
     if (value > rollSides) {
       throw new Error(
         `createSequenceRng: queued value ${value} at position ${position - 1} exceeds ` +
-          `die size ${rollSides} for this call (fixture bug — check explosion/consumption order)`
+          `die size ${rollSides} for this call (fixture bug — check explosion/consumption order)`,
       )
     }
     return value
