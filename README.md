@@ -100,11 +100,13 @@ GM-narration hook ("he'd have made it, but the flourish cost him").
 ```
 
 Returns the full pool with per-die symbols, kept indices, conversions,
-and tallies:
+tallies, and the derived totals (⚑ + 🔥 = totalSuccesses):
 
 ```json
 {
   "tallies": { "successes": 3, "opportunities": 1, "strife": 1, "explosive": 2 },
+  "totalSuccesses": 5,
+  "bonusSuccesses": 2,
   "success": true,
   "composureExceeded": false
 }
@@ -176,21 +178,59 @@ separate thing — `rollType: "trait"` explodes and allows raises.
 
 ### `l5r5_roll` — Ring & Skill dice (5e)
 
-Rolls `Ring` d6 ring dice + `Skill` d12 skill dice, keeps `Ring`-rating
-dice chosen AFTER seeing the pool.
+Implements the corebook check pipeline (pp. 20–26, spec of record):
+assemble the pool (Step 3) → modify rolled dice (Step 4) → choose kept
+dice (Step 5) → resolve symbols on KEPT dice (Step 6).
 
-| Param                     | Range  | Default       | Notes                                                                                                             |
-| ------------------------- | ------ | ------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `ring`                    | 1–5    | required      | also the keep count                                                                                               |
-| `skill`                   | 0–5    | 0             | 0 = untrained (ring dice only)                                                                                    |
-| `tn`                      | 1–10   | —             | successes needed: 1 easy · 2 average · 3 difficult · 4 very hard · 5 extremely hard · 6 extraordinary · 7+ heroic |
-| `advantage`               | bool   | false         | convert non-explosive ring dice → skill dice                                                                      |
-| `disadvantage`            | bool   | false         | convert worst skill die → ring die                                                                                |
-| `conversions`             | string | —             | explicit `"2:skill,4:ring"` (1-based, overrides adv/disadv)                                                       |
-| `policy`                  | enum   | success_first | `min_strife`, `max_opportunity`                                                                                   |
-| `kept`                    | string | —             | `"1,3"` explicit keep (1-based, exactly ring-count)                                                               |
-| `composure`               | int    | —             | advisory `composureExceeded` flag (kept strife ≥ value)                                                           |
-| `includeExplosionBonuses` | bool   | true          | expand explosive faces into bonus dice                                                                            |
+**The law, as implemented:**
+
+- **Total successes = ⚑ + 🔥** (p. 24: "the sum total of success and
+  explosive success symbols"). A kept skill-12 (pure explosive face)
+  counts as one success; a kept ring-6 counts as two.
+- **Keep 1..ring dice** (p. 24: "at least one... up to the value of the
+  ring"; +1 per assisting character, p. 26). Under-keeping is legal and
+  reported in notes.
+- **Explosions resolve post-keep, from kept dice only** (Step 6.1): each
+  🔥 on a kept die rolls one bonus die of the same type; a kept bonus
+  die's own 🔥 chains.
+- **Advantage + disadvantage cancel** (p. 24 consolidate rule) — both
+  flags together have no effect, per the book.
+- Assistance (p. 26): +1 skill die per skilled helper, +1 ring die per
+  unskilled helper.
+
+| Param          | Range        | Default       | Notes                                                                                                              |
+| -------------- | ------------ | ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `ring`         | 1–5          | required      | also the keep maximum (before assistance)                                                                           |
+| `skill`        | 0–5          | 0             | 0 = untrained (ring dice only)                                                                                      |
+| `tn`           | 1–10         | —             | successes needed: 1 easy · 2 average · 3 difficult · 4 very hard · 5 extremely hard · 6 extraordinary · 7+ heroic    |
+| `assistants`   | object       | —             | `{skilled, unskilled}` (p. 26); keep max +1 per assistant                                                            |
+| `keepCount`    | 1..keepMax   | keepMax       | under-keep via policy (book-legal); values above max clamp with a note                                              |
+| `kept`         | string       | —             | `"1,3"` explicit keep (1-based, 1..keepMax — under-keeping legal)                                                   |
+| `bonusDice`    | enum         | auto_keep     | `auto_keep` (tallied) · `auto_drop` (shown, not tallied) · `manual` (pending — caller decides from the audit array)  |
+| `conversions`  | string       | —             | explicit `"2:skill,4:ring"` (1-based, book-accurate surface; overrides adv/disadv)                                  |
+| `advantage`    | bool         | false         | house simplification of named categories; cancels against `disadvantage` (p. 24)                                    |
+| `disadvantage` | bool         | false         | house simplification; cancels against `advantage`                                                                   |
+| `policy`       | enum         | success_first | `min_strife`, `max_opportunity` (select `keepCount`-many dice)                                                      |
+| `composure`    | int          | —             | advisory `composureExceeded` flag (kept strife ≥ value)                                                             |
+| `label`        | string       | —             | echoed in the result                                                                                                |
+
+Deprecated: `includeExplosionBonuses` (bool) maps to `bonusDice`
+(true → `auto_keep`, false → `auto_drop`); cannot be combined with it.
+
+**Result contract** (the result is a full transcript — every automated
+decision is visible): base `pool` with per-die symbols · `kept` /
+`dropped` · `bonusDice[]` audit (sourceDieIndex, type, face, symbols,
+chainDepth, disposition kept/dropped/pending) · `conversions[]` ·
+`tallies` (raw ⚑/⧫/⏳/🔥 counts; `bonusPending` appears in `manual`
+mode only) · `totalSuccesses` (⚑+🔥) · vs `tn`: `success`,
+`bonusSuccesses`, `shortfall` · `keepMax`, `requestedKeepCount`,
+`keptIndices` · `explosiveTriggers`, `untrained` · `notes[]` narrating
+every automated decision.
+
+House safety valve (disclosed, not book law): `MAX_BONUS_CHAIN = 10`
+caps per-chain bonus-die depth — the book is naturally finite because a
+player may always drop, but `auto_keep` automation needs a guard; the
+cap firing is reported in notes.
 
 Verified symbol charts (cross-checked against two independent 5e
 references):
@@ -203,8 +243,10 @@ references):
 | --------- | --- | --- | ----------- | ---- | -------- | -------------------- | -------------------- |
 | symbols   | —   | opp | succ+strife | succ | succ+opp | succ+strife+**expl** | **expl** (no strife) |
 
-Explosive faces add one bonus die of the same type — chained, capped,
-marked `bonusFor`, never consuming keep slots.
+Explosive faces on KEPT dice add one bonus die of the same type after
+keep selection (book Step 6.1) — chained, capped, fully audited in the
+`bonusDice[]` array. Kept bonus dice are tallied (their symbols count
+toward the TN, per the Sakura worked example, p. 23).
 
 ## Architecture
 
