@@ -12,6 +12,7 @@
  *      (diagnostics go to stderr; stdout is the wire)
  */
 
+import { createRequire } from 'node:module'
 import { describe, it, expect, afterAll } from 'vitest'
 import { spawn } from 'child_process'
 import { createInterface } from 'readline'
@@ -85,7 +86,11 @@ describe('E2E: stdio wire protocol (bin entry)', () => {
     })
     expect(init.result).toBeTruthy()
     expect(init.result.serverInfo.name).toBe('dice-mcp-server')
-    expect(init.result.serverInfo.version).toBe('1.1.0')
+    // SSOT mirror: the wire announcement must equal package.json's
+    // version (the server derives it via createRequire) — asserting a
+    // hand-pinned literal here would break on every version bump.
+    const pkgVersion = createRequire(import.meta.url)('../../package.json').version
+    expect(init.result.serverInfo.version).toBe(pkgVersion)
 
     s.child.stdin.write(
       JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n',
