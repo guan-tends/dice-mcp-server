@@ -73,7 +73,7 @@ describe('D3 — rollType semantics', () => {
     expect(r.rolled[0].chain.length).toBe(0)
   })
 
-  it('explicit untrained:false with skill 0 = trait roll (the application convention)', () => {
+  it('explicit untrained:false with skill 0 = trait roll (project convention)', () => {
     const rng = createSequenceRng([10, 6, 5, 5]) // 10 explodes→6; tail
     const r = rollAndKeep({ trait: 2, skill: 0, untrained: false, rng })
     expect(r.untrained).toBe(false)

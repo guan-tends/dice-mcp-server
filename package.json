@@ -59,7 +59,8 @@
     "prettier": "^3.0.0"
   },
   "author": {
-    "name": "Guan",
+    "name": "David Newman & Guan",
+    "email": "david.r.newman@proton.me",
     "url": "https://github.com/guan-tends"
   },
   "license": "MIT",
