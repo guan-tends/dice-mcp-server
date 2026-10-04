@@ -410,3 +410,7 @@ they fund compute, inference, and the rest of the tool fleet:
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+Crafted with ❤️ by [Sage Labs](https://sagelabs.dev)
