@@ -3,7 +3,7 @@
  * Dice MCP Server — executable entry (bin).
  *
  * stdio transport by default (the passgen UX for MCP client configs):
- *   { "mcpServers": { "dice": { "command": "npx", "args": ["-y", "@guan-tends/dice-mcp-server"] } } }
+ *   { "mcpServers": { "dice": { "command": "npx", "args": ["-y", "@sagelabs/dice-mcp-server"] } } }
  *
  * DICE_MCP_TRANSPORT env (stdio|http|sse) overrides the stdio default.
  * All diagnostics go to stderr; stdout carries only the MCP protocol.

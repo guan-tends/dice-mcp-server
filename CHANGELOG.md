@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed: `host` config now binds the interface (mcp-ai 1.6.7)
 
-- Dependency: `@guan-tends/mcp-ai` ^1.6.7-guan.0 — `connection.host` is
+- Dependency: `@sagelabs/mcp-ai` ^1.6.7-guan.0 — `connection.host` is
   now wired through express `listen()` server-side; the previously INERT
   `host` config field binds the actual socket (verified: `ss` shows
   `127.0.0.1:3777`, LAN-addressed connections refused).
@@ -175,7 +175,7 @@ tests, 4 spec-change fixture flips with citations.
 - **stdio transport** — the server now speaks JSON-RPC over stdin/stdout
   (mcp-ai's `cli` entry, SDK `StdioServerTransport`), matching the
   passgen UX. Zero-config for MCP clients:
-  `{ "command": "npx", "args": ["-y", "@guan-tends/dice-mcp-server"] }`.
+  `{ "command": "npx", "args": ["-y", "@sagelabs/dice-mcp-server"] }`.
 - `bin` entry `dice-mcp-server` (stdio by default).
 - `DICE_MCP_TRANSPORT` env (stdio|http|sse) and JSON5 `transport` config
   key; explicit choice always beats entry defaults. Library entry keeps

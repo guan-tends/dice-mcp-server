@@ -1,7 +1,7 @@
 /**
  * Dice MCP Server — Exposes dice engines as MCP tools.
  *
- * Creates a SimpleServer from @guan-tends/mcp-ai wrapping three engines:
+ * Creates a SimpleServer from @sagelabs/mcp-ai wrapping three engines:
  *   - dice_roll:  generic d20-style notation (NdM, keep, explode, reroll, DC)
  *   - l5r4_roll:  L5R 4e Roll & Keep (XkY+Z, raises, void, emphasis, wounds)
  *   - l5r5_roll:  L5R 5e ring/skill symbol dice (keeps, policies, conversions)
@@ -17,7 +17,7 @@
  */
 
 import { createRequire } from 'node:module'
-import { createSimpleServer } from '@guan-tends/mcp-ai/simple-server/index.js'
+import { createSimpleServer } from '@sagelabs/mcp-ai/simple-server/index.js'
 import { z } from 'zod'
 import { evaluateExpression } from './engine/d20.js'
 import { rollAndKeep } from './engine/l5r4.js'
@@ -430,7 +430,7 @@ export function getTools({ rng = createCryptoRng() } = {}) {
 /**
  * Create the Dice MCP Server.
  *
- * NOTE: `host` is honored as of @guan-tends/mcp-ai 1.6.7-guan.0 —
+ * NOTE: `host` is honored as of @sagelabs/mcp-ai 1.6.7-guan.0 —
  * SimpleServer's express listen() passes it as the bind interface
  * (app.listen(port, host)). The systemd IPAddressDeny/Allow + UFW
  * default-deny layers remain as defense-in-depth. See README
