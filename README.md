@@ -10,7 +10,7 @@ Three tools via the Model Context Protocol:
 | `l5r4_roll` | Legend of the Five Rings 4e Roll & Keep (XkY+Z)          | structured in, number + raises out |
 | `l5r5_roll` | Legend of the Five Rings 5e (FFG) ring/skill symbol dice | structured in, symbols out         |
 
-Built on [@guan-tends/mcp-ai](https://github.com/guan-tends/mcp-ai) SimpleServer (HTTP transport, raw zod-shape schemas). Same composition-root pattern as `@guan-tends/matrix-mcp-server`.
+Built on [@guan-tends/mcp-ai](https://github.com/sagelabs-dev/mcp-ai) SimpleServer (HTTP transport, raw zod-shape schemas). Same composition-root pattern as `@guan-tends/matrix-mcp-server`.
 
 ## Quick Start
 

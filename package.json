@@ -61,12 +61,12 @@
   "author": {
     "name": "David Newman & Guan",
     "email": "david.r.newman@proton.me",
-    "url": "https://github.com/guan-tends"
+    "url": "https://github.com/sagelabs-dev"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/guan-tends/dice-mcp-server.git"
+    "url": "git+https://github.com/sagelabs-dev/dice-mcp-server.git"
   },
   "bin": {
     "dice-mcp-server": "./bin/dice-mcp-server.mjs"
